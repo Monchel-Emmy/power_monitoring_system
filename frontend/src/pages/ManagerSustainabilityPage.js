@@ -29,8 +29,6 @@ const ManagerSustainabilityPage = () => {
   const maxCO2 = data?.monthlyTrend?.length
     ? Math.max(...data.monthlyTrend.map((m) => m.co2Tons), 1)
     : 5;
-  
-  const maxRenewable = 100; // Renewable is always 0-100%
 
   return (
     <div className="manager-page manager-sustainability-page">

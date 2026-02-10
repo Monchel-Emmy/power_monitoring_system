@@ -75,8 +75,6 @@ const ManagerBuildingZonesPage = () => {
     }
   };
 
-  const maxUsage = data?.buildings?.length ? Math.max(...data.buildings.map((b) => b.currentUsageKw), 1) : 1;
-
   return (
     <div className="manager-page manager-building-zones-page">
       <div className="manager-page-header">

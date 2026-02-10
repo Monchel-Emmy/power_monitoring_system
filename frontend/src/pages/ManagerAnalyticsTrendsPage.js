@@ -74,7 +74,6 @@ const ManagerAnalyticsTrendsPage = () => {
   const getUsageAreaPath = () => {
     const linePath = getUsageLinePath();
     if (!linePath || !weekly.length) return '';
-    const divisor = Math.max(1, weekly.length - 1);
     const lastX = padding.left + plotWidth;
     const baseY = padding.top + plotHeight;
     return `${linePath} L ${lastX},${baseY} L ${padding.left},${baseY} Z`;

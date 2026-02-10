@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import './ManagerReportsPage.css';
 
 import { API_BASE } from '../config';
@@ -15,11 +15,7 @@ const ManagerReportsPage = () => {
     format: 'PDF',
   });
 
-  useEffect(() => {
-    fetchReports();
-  }, [periodFilter, categoryFilter]);
-
-  const fetchReports = async () => {
+  const fetchReports = useCallback(async () => {
     try {
       const params = new URLSearchParams();
       if (periodFilter !== 'All') params.append('period', periodFilter);
@@ -35,7 +31,11 @@ const ManagerReportsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [periodFilter, categoryFilter]);
+
+  useEffect(() => {
+    fetchReports();
+  }, [fetchReports]);
 
   const handleGenerate = async () => {
     try {

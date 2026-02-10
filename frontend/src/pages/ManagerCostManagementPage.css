@@ -1,0 +1,218 @@
+.manager-cost-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.cost-chart-card,
+.cost-table-card {
+  background-color: #ffffff;
+  border-radius: 18px;
+  padding: 18px 20px 22px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+  margin-top: 18px;
+}
+
+.cost-chart-card .chart-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cost-chart-card .chart-header h2 {
+  margin: 0 0 4px 0;
+  font-size: 1.15rem;
+  color: #111827;
+}
+
+.cost-chart-card .chart-header p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.cost-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.cost-btn {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid #d1d5db;
+  background-color: #ffffff;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.cost-btn.active {
+  background-color: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+.cost-chart-placeholder {
+  margin-top: 14px;
+  height: 220px;
+  border-radius: 16px;
+  background: linear-gradient(to top, #fee2e2, #fef2f2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.cost-chart-container {
+  margin-top: 14px;
+  padding: 12px 0;
+  overflow-x: auto;
+  min-height: 240px;
+}
+
+.cost-chart-wrapper {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  padding-left: 8px;
+}
+
+.cost-chart-y-axis {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding-bottom: 20px;
+  min-width: 70px;
+  flex-shrink: 0;
+}
+
+.cost-y-axis-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+  text-align: right;
+  padding-right: 8px;
+}
+
+.cost-y-axis-ticks {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 200px;
+  width: 100%;
+}
+
+.cost-y-axis-tick {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+}
+
+.cost-y-axis-tick-line {
+  width: 8px;
+  height: 1px;
+  background-color: #e5e7eb;
+  flex-shrink: 0;
+}
+
+.cost-y-axis-tick-label {
+  font-size: 0.7rem;
+  color: #6b7280;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.cost-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 6px;
+  height: 220px;
+  padding: 0 4px;
+  min-width: min(100%, 12 * 48px);
+  flex: 1;
+}
+
+.cost-chart-bar-wrap {
+  flex: 1;
+  min-width: 0;
+  max-width: 56px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.cost-chart-bar-area {
+  width: 100%;
+  max-width: 44px;
+  flex: 1;
+  min-height: 120px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.cost-chart-bar {
+  width: 100%;
+  min-height: 12px;
+  background: linear-gradient(to top, #b91c1c, #ef4444 40%, #f87171);
+  border-radius: 8px 8px 0 0;
+  transition: height 0.25s ease;
+  box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.cost-chart-label {
+  font-size: 0.7rem;
+  color: #6b7280;
+  font-weight: 500;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.cost-loading,
+.cost-empty {
+  padding: 20px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.cost-table-card table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.cost-table-card th,
+.cost-table-card td {
+  padding: 9px 12px;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.cost-table-card th {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+}
+
+.variance-good {
+  color: #16a34a;
+}
+
+.variance-bad {
+  color: #dc2626;
+}
+

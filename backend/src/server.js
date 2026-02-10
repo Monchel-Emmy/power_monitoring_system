@@ -25,7 +25,11 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-app.use(cors());
+const corsOptions = {
+  origin: process.env.FRONTEND_ORIGIN || true, // true = allow all (dev); set to your Vercel URL in production
+  credentials: true,
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Use building routes

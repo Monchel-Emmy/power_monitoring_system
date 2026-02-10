@@ -10,6 +10,7 @@ backend/node_modules/
 .env.test.local
 .env.production.local
 *.env
+!.env.example
 
 # Build output
 frontend/build/

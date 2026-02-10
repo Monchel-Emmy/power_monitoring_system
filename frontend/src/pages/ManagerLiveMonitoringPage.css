@@ -1,0 +1,394 @@
+.manager-page {
+  padding: 20px 24px 32px;
+  background-color: #f4f7f6;
+  min-height: calc(100vh - 60px);
+  box-sizing: border-box;
+}
+
+.manager-live-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.manager-page-header h1 {
+  margin: 0;
+  font-size: 1.6rem;
+  color: #111827;
+}
+
+.manager-page-header p {
+  margin: 4px 0 18px;
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+.manager-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 900px) {
+  .manager-kpi-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 500px) {
+  .manager-kpi-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.manager-kpi-card {
+  background-color: #ffffff;
+  border-radius: 16px;
+  padding: 18px 20px;
+  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.06);
+  position: relative;
+}
+
+.kpi-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  margin-bottom: 10px;
+}
+
+.kpi-icon-blue {
+  background-color: #dbeafe;
+  color: #2563eb;
+}
+
+.kpi-icon-green {
+  background-color: #dcfce7;
+  color: #16a34a;
+}
+
+.kpi-icon-purple {
+  background-color: #f3e8ff;
+  color: #9333ea;
+}
+
+.kpi-icon-yellow {
+  background-color: #fef9c3;
+  color: #ca8a04;
+}
+
+.kpi-label {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+
+.kpi-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.kpi-sub {
+  margin-top: 4px;
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.kpi-sub-normal {
+  color: #16a34a;
+}
+
+.kpi-sub-alert {
+  color: #dc2626;
+}
+
+.kpi-sub-alerts {
+  color: #ea580c;
+}
+
+.kpi-trend-down {
+  color: #16a34a;
+}
+
+.kpi-trend-up {
+  color: #dc2626;
+}
+
+/* Chart */
+.manager-chart-card {
+  background-color: #ffffff;
+  border-radius: 18px;
+  padding: 20px 24px 24px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+  margin-bottom: 24px;
+  position: relative;
+}
+
+.chart-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #111827;
+}
+
+.chart-header p {
+  margin: 4px 0 16px;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.chart-area-container {
+  height: 240px;
+  position: relative;
+  background: linear-gradient(to bottom, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.power-chart-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.chart-grid-line {
+  stroke: #e2e8f0;
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+.chart-area {
+  transition: d 0.3s ease;
+}
+
+.chart-line {
+  transition: d 0.3s ease;
+}
+
+.chart-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+.chart-axis-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 12px;
+  padding: 0 4px;
+}
+
+.chart-x-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.chart-y-labels {
+  position: absolute;
+  left: 12px;
+  top: 50px;
+  bottom: 50px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: #9ca3af;
+}
+
+/* Bottom row: Building Usage + System Status */
+.live-bottom-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 768px) {
+  .live-bottom-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.building-usage-card,
+.system-status-card {
+  background-color: #ffffff;
+  border-radius: 18px;
+  padding: 20px 24px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+}
+
+.building-usage-card h2,
+.system-status-card h2 {
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+  color: #111827;
+}
+
+.building-usage-card p,
+.system-status-card p {
+  margin: 0 0 16px;
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.building-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.building-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.building-label {
+  width: 90px;
+  font-size: 0.9rem;
+  color: #374151;
+  flex-shrink: 0;
+}
+
+.building-bar-track {
+  flex: 1;
+  height: 24px;
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+
+.building-bar-max {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background-color: #e5e7eb;
+  z-index: 0;
+  border-radius: 8px;
+}
+
+.building-bar-current {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 1;
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  border-radius: 8px 0 0 8px;
+  min-width: 4px;
+  transition: width 0.3s ease;
+}
+
+.building-values {
+  width: 120px;
+  font-size: 0.85rem;
+  color: #6b7280;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.building-legend {
+  display: flex;
+  gap: 20px;
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.legend-current {
+  background-color: #3b82f6;
+}
+
+.legend-max {
+  background-color: #d1d5db;
+}
+
+.no-data {
+  color: #9ca3af;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* System Status */
+.status-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-dot.status-ok {
+  background-color: #22c55e;
+}
+
+.status-dot.status-warn {
+  background-color: #f97316;
+}
+
+.status-dot.status-error {
+  background-color: #ef4444;
+}
+
+.status-item span:nth-child(2) {
+  flex: 1;
+  color: #374151;
+}
+
+.status-value {
+  font-weight: 500;
+}
+
+.status-value.status-ok {
+  color: #16a34a;
+}
+
+.status-value.status-warn {
+  color: #ea580c;
+}
+
+.status-value.status-error {
+  color: #dc2626;
+}
+
+.manager-error-state {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  padding: 24px;
+  color: #991b1b;
+}.manager-error-state code {
+  background: #fee2e2;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.9em;
+}

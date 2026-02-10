@@ -1,0 +1,12 @@
+/* Add your DashboardLayout styling here (optional) */
+.dashboard-layout {
+  display: flex;
+  height: 100vh;
+  margin-bottom: auto;
+}
+
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  margin-top: 110px; 
+}

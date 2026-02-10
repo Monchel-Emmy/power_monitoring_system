@@ -1,0 +1,268 @@
+.manager-building-zones-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.multi-building-card,
+.cross-building-card {
+  background-color: #ffffff;
+  border-radius: 18px;
+  padding: 18px 20px 22px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+  margin-top: 18px;
+}
+
+.multi-building-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.multi-building-header h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.multi-building-header p {
+  margin: 4px 0 0;
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.multi-building-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.building-summary-card {
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  padding: 14px 16px;
+}
+
+.summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.summary-header h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.summary-header p {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.summary-status {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background-color: #dcfce7;
+  color: #166534;
+  font-size: 0.75rem;
+}
+
+.summary-usage .label {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.summary-usage .value {
+  display: block;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.capacity-bar {
+  margin-top: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background-color: #e5e7eb;
+  overflow: hidden;
+}
+
+.capacity-fill {
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+}
+
+.capacity-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.capacity-meta .trend {
+  color: #16a34a;
+}
+
+.summary-footer {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.cross-building-card h2 {
+  margin: 0 0 6px;
+  font-size: 1.05rem;
+}
+
+.cross-building-card p {
+  margin: 0 0 12px;
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.cross-building-chart-placeholder {
+  height: 220px;
+  border-radius: 16px;
+  background: linear-gradient(to top, #fef9c3, #f9fafb);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.building-loading,
+.building-empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: #6b7280;
+}
+
+.building-empty button {
+  margin-top: 12px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background-color: #ffffff;
+  color: #374151;
+  cursor: pointer;
+}
+
+.add-building-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background-color: #ffffff;
+  color: #374151;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.add-building-btn:hover {
+  background-color: #f3f4f6;
+}
+
+.summary-status.status-offline {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.summary-status.status-maintenance {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.cross-building-chart {
+  margin-top: 16px;
+}
+
+.comparison-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  gap: 16px;
+  height: 200px;
+  padding: 0 8px;
+}
+
+.comparison-bar-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.comparison-bar {
+  width: 100%;
+  max-width: 60px;
+  min-height: 8px;
+  background: linear-gradient(to top, #3b82f6, #60a5fa);
+  border-radius: 8px 8px 0 0;
+  transition: height 0.3s ease;
+}
+
+.comparison-label {
+  font-size: 0.8rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.comparison-value {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.comparison-legend {
+  margin-top: 12px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+/* Form styles for Add Building modal */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.form-group input,
+.form-group select {
+  padding: 10px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 600px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}
+

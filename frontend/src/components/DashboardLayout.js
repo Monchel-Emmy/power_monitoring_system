@@ -10,7 +10,7 @@ function DashboardLayout() {
       < Sidebar />
       <div className="main-content">
         <Header
-          systemName="Power Monitoring System"
+          systemName="In-House Power Monitoring System"
           adminPanel="Admin Panel"
         />
         <Outlet />

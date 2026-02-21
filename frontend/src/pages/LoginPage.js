@@ -27,7 +27,7 @@ function LoginPage() {
         body: JSON.stringify({
           username: username.trim(),
           password,
-          role: role === 'admin' ? 'Administrator' : 'Building Manager',
+          role: role === 'admin' ? 'Administrator' : 'Home & Building Manager',
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -48,14 +48,14 @@ function LoginPage() {
     setLoading(false);
   };
 
-  const roleLabel = role === 'admin' ? 'Administrator' : 'Building Manager';
+  const roleLabel = role === 'admin' ? 'Administrator' : 'Home & Building Manager';
 
   return (
     <div className="login-container">
       <div className="login-box">
         <div className="login-logo" />
         <h1 className="login-title">Power Usage Monitoring</h1>
-        <p className="login-subtitle">Industrial &amp; Commercial Building System</p>
+        <p className="login-subtitle">In-House Power Monitoring for Home &amp; Office</p>
 
         <div className="login-role-section">
           <span className="login-role-label">Select Role</span>
@@ -64,7 +64,7 @@ function LoginPage() {
               <span className="login-role-icon lock" /> Administrator
             </button>
             <button type="button" className={`login-role-btn ${role === 'manager' ? 'active' : ''}`} onClick={() => setRole('manager')}>
-              <span className="login-role-icon person" /> Building Manager
+              <span className="login-role-icon person" /> Home &amp; Building Manager
             </button>
           </div>
         </div>

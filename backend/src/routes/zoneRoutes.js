@@ -105,7 +105,8 @@ async function getZone(req, res, next) {
   }
 
   res.zone = zone;
-  next();
+  if (typeof next === 'function') next();
+  else res.json(res.zone);
 }
 
 module.exports = router;

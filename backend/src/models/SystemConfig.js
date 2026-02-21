@@ -25,7 +25,7 @@ const SystemConfigSchema = new mongoose.Schema({
 
 SystemConfigSchema.pre('save', function (next) {
   this.updatedAt = Date.now();
-  next();
+  if (typeof next === 'function') next();
 });
 
 module.exports = mongoose.model('SystemConfig', SystemConfigSchema);

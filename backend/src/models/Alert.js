@@ -53,7 +53,7 @@ const AlertSchema = new mongoose.Schema({
 
 AlertSchema.pre('save', function (next) {
   this.updatedAt = Date.now();
-  next();
+  if (typeof next === 'function') next();
 });
 
 AlertSchema.index({ timestamp: -1 });

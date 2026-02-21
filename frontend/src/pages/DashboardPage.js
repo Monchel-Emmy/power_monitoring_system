@@ -21,8 +21,20 @@ function DashboardPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const isConnectionError = error && (error === 'Failed to fetch' || error.includes('NetworkError') || error.includes('Load failed'));
+
   if (loading) return <div className="content-body"><p>Loading admin overview...</p></div>;
-  if (error) return <div className="content-body"><p className="error">Error: {error}</p></div>;
+  if (error) return (
+    <div className="content-body">
+      <p className="error">Error: {error}</p>
+      {isConnectionError && (
+        <p className="error-hint">
+          Cannot reach the server. If running locally: start the backend (<code>npm start</code> in the backend folder, port 4000).
+          If deployed: set <code>REACT_APP_API_BASE</code> to your backend URL (e.g. https://your-backend.onrender.com).
+        </p>
+      )}
+    </div>
+  );
   if (!data) return null;
 
   const { overview, recentUsers, buildings, devices, recentAudit } = data;
@@ -47,7 +59,7 @@ function DashboardPage() {
                 <p className="metric">{overview.totalUsers} <span>({overview.activeUsers} active)</span></p>
               </div>
               <div className="card">
-                <h3>Buildings</h3>
+                <h3>Homes</h3>
                 <p className="metric">{overview.totalBuildings}</p>
               </div>
               <div className="card">
@@ -108,20 +120,20 @@ function DashboardPage() {
           </div>
 
           <div className="building-unit-configuration dashboard-section">
-            <h2>3. Building Unit Configuration</h2>
-            <p>Configure building properties, zones, floor plans, and hierarchical organization with spatial management</p>
+            <h2>3. Homes &amp; Rooms</h2>
+            <p>Manage homes, rooms, and devices for in-house power monitoring</p>
             <div className="section-header-actions">
-              <button className="add-button" onClick={() => navigate('/building-configuration')}>Add Building</button>
-              <button className="action-button" onClick={() => navigate('/building-configuration')}>View All Buildings</button>
+              <button className="add-button" onClick={() => navigate('/building-configuration')}>Add Home</button>
+              <button className="action-button" onClick={() => navigate('/building-configuration')}>View All</button>
               <div className="building-stats">
-                <span>Total Buildings: <strong>{overview.totalBuildings}</strong></span>
-                <span>Total Zones: <strong>{overview.totalZones}</strong></span>
-                <span>Devices in Buildings: <strong>{overview.totalDevicesInBuildings ?? buildings.reduce((s,b)=>s+(b.totalDevices||0),0)}</strong></span>
+                <span>Homes: <strong>{overview.totalBuildings}</strong></span>
+                <span>Rooms: <strong>{overview.totalZones}</strong></span>
+                <span>Devices: <strong>{overview.totalDevicesInBuildings ?? buildings.reduce((s,b)=>s+(b.totalDevices||0),0)}</strong></span>
               </div>
             </div>
             <div className="building-list">
               {buildings.length === 0 ? (
-                <p>No buildings configured yet.</p>
+                <p>No homes yet. Add one to get started.</p>
               ) : (
                 buildings.map((b) => (
                   <div className="building-card" key={b._id}>
@@ -130,7 +142,7 @@ function DashboardPage() {
                     <span className={`status ${b.status}`}>{b.status}</span>
                     <div className="building-details">
                       <span>Floors: <strong>{b.totalFloors}</strong></span>
-                      <span>Zones: <strong>{b.totalZones}</strong></span>
+                      <span>Rooms: <strong>{b.totalZones}</strong></span>
                       <span>Devices: <strong>{b.totalDevices}</strong></span>
                       <span>Total Area: <strong>{b.totalArea?.toLocaleString()} sq ft</strong></span>
                     </div>

@@ -17,7 +17,7 @@ router.get('/:id', getBuilding, (req, res) => {
   res.json(res.building);
 });
 
-// Generate default zone distribution (Zone 1, Zone 2, ...) when not provided
+// Generate default zone distribution (Room 1, Room 2, ...) when not provided
 function buildZoneDistribution(totalZones, totalDevices = 0, provided = []) {
   if (provided && provided.length > 0) return provided;
   const zones = [];
@@ -25,9 +25,41 @@ function buildZoneDistribution(totalZones, totalDevices = 0, provided = []) {
   let remainder = totalDevices - avg * totalZones;
   for (let i = 1; i <= (totalZones || 0); i++) {
     const count = avg + (remainder-- > 0 ? 1 : 0);
-    zones.push({ zoneName: `Zone ${i}`, devicesCount: count, area: 0 });
+    zones.push({ zoneName: `Room ${i}`, devicesCount: count, area: 0 });
   }
   return zones;
+}
+
+// Sync zoneDistribution to match totalZones: trim (merge devices into last) or extend with new rooms
+function syncZoneDistribution(totalZones, totalDevices, currentDist = []) {
+  const n = Math.max(0, Number(totalZones) || 0);
+  const targetDevices = Math.max(0, Number(totalDevices) || 0);
+  const current = Array.isArray(currentDist) ? currentDist : [];
+  if (n === 0) return [];
+  if (n >= current.length) {
+    const result = current.map((z) => ({ zoneName: z.zoneName || 'Room', devicesCount: z.devicesCount ?? 0, area: z.area ?? 0 }));
+    const existingDevices = result.reduce((s, z) => s + (z.devicesCount || 0), 0);
+    let remainder = targetDevices - existingDevices;
+    for (let i = current.length; i < n; i++) {
+      const count = remainder > 0 ? Math.min(remainder, Math.ceil(remainder / (n - i))) : 0;
+      remainder -= count;
+      result.push({ zoneName: `Room ${i + 1}`, devicesCount: count, area: 0 });
+    }
+    return result;
+  }
+  const kept = current.slice(0, n);
+  const removed = current.slice(n);
+  const mergedDevices = removed.reduce((s, z) => s + (z.devicesCount ?? 0), 0);
+  const result = kept.map((z, i) => ({
+    zoneName: z.zoneName || `Room ${i + 1}`,
+    devicesCount: (z.devicesCount ?? 0) + (i === n - 1 ? mergedDevices : 0),
+    area: z.area ?? 0,
+  }));
+  if (result.length && targetDevices !== undefined) {
+    const sum = result.reduce((s, z) => s + (z.devicesCount || 0), 0);
+    if (sum !== targetDevices) result[result.length - 1].devicesCount = Math.max(0, (result[result.length - 1].devicesCount || 0) + (targetDevices - sum));
+  }
+  return result;
 }
 
 // Create one building
@@ -68,10 +100,24 @@ const updateBuildingHandler = async (req, res) => {
   const td = b.totalDevices ?? b.devices;
   const ta = b.totalArea ?? b.area;
   if (tf != null) res.building.totalFloors = Number(tf) || 1;
-  if (tz != null) res.building.totalZones = Number(tz) || 0;
-  if (td != null) res.building.totalDevices = Number(td) || 0;
   if (ta != null) res.building.totalArea = Number(ta) || 0;
-  if (b.zoneDistribution != null) res.building.zoneDistribution = b.zoneDistribution;
+
+  if (Array.isArray(b.zoneDistribution) && b.zoneDistribution.length > 0) {
+    res.building.zoneDistribution = b.zoneDistribution.map((z) => ({
+      zoneName: (z.zoneName || '').trim() || 'Room',
+      devicesCount: Math.max(0, Number(z.devicesCount) || 0),
+      area: Math.max(0, Number(z.area) || 0),
+    }));
+    res.building.totalZones = res.building.zoneDistribution.length;
+    res.building.totalDevices = res.building.zoneDistribution.reduce((s, z) => s + (z.devicesCount || 0), 0);
+  } else if (tz != null || td != null) {
+    const newZones = Number(tz) ?? res.building.totalZones ?? 0;
+    const newDevices = Number(td) ?? res.building.totalDevices ?? 0;
+    res.building.zoneDistribution = syncZoneDistribution(newZones, newDevices, res.building.zoneDistribution);
+    res.building.totalZones = res.building.zoneDistribution.length;
+    res.building.totalDevices = res.building.zoneDistribution.reduce((s, z) => s + (z.devicesCount || 0), 0);
+  }
+
   try {
     const updated = await res.building.save();
     res.json(updated);
@@ -105,7 +151,8 @@ async function getBuilding(req, res, next) {
   }
 
   res.building = building;
-  next();
+  if (typeof next === 'function') next();
+  else res.json(res.building);
 }
 
 module.exports = router;

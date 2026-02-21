@@ -5,10 +5,10 @@ const Device = require('../models/Device');
 const Building = require('../models/Building');
 const { generatePredictions } = require('../services/predictiveAnalytics');
 
-// Helper: get building name from device location (e.g. "Building A - Floor 1" -> "Building A")
+// Helper: get home name from device location (e.g. "Home A - Room 1" or "Building A - Room 1" -> "Home A" / "Building A")
 function getBuildingFromLocation(loc) {
   if (!loc || typeof loc !== 'string') return 'Unknown';
-  const m = loc.match(/Building\s+[A-Z]/i);
+  const m = loc.match(/(?:Home|Building)\s+[A-Z]/i);
   return m ? m[0] : 'Unknown';
 }
 
@@ -119,15 +119,15 @@ router.get('/live-overview', async (req, res) => {
     });
     if (recentReadings.length === 0 && buildingUsage.length > 0) {
       buildingUsage = [
-        { building: 'Building A', currentUsage: 400, maxCapacity: 1000 },
-        { building: 'Building B', currentUsage: 700, maxCapacity: 1200 },
-        { building: 'Building C', currentUsage: 250, maxCapacity: 800 },
+        { building: 'Home A', currentUsage: 400, maxCapacity: 1000 },
+        { building: 'Home B', currentUsage: 700, maxCapacity: 1200 },
+        { building: 'Home C', currentUsage: 250, maxCapacity: 800 },
       ];
     } else if (buildingUsage.length === 0) {
       buildingUsage = [
-        { building: 'Building A', currentUsage: 400, maxCapacity: 1000 },
-        { building: 'Building B', currentUsage: 700, maxCapacity: 1200 },
-        { building: 'Building C', currentUsage: 250, maxCapacity: 800 },
+        { building: 'Home A', currentUsage: 400, maxCapacity: 1000 },
+        { building: 'Home B', currentUsage: 700, maxCapacity: 1200 },
+        { building: 'Home C', currentUsage: 250, maxCapacity: 800 },
       ];
     }
 
@@ -140,9 +140,9 @@ router.get('/live-overview', async (req, res) => {
     });
     if (buildingStatus.length === 0) {
       buildingStatus.push(
-        { name: 'Building A Sensors', status: 'Active' },
-        { name: 'Building B Sensors', status: 'Warning' },
-        { name: 'Building C Sensors', status: 'Active' },
+        { name: 'Home A Sensors', status: 'Active' },
+        { name: 'Home B Sensors', status: 'Warning' },
+        { name: 'Home C Sensors', status: 'Active' },
       );
     }
 
@@ -225,9 +225,9 @@ router.get('/mobile-overview', async (req, res) => {
       const pct = maxCap > 0 ? Math.min(100, (kw / maxCap) * 100) : 0;
       return { name: b.name, status, usageKw: kw, maxCapacity: maxCap, usagePct: pct, accent };
     }) : [
-      { name: 'Building A', status: 'Operational', usageKw: 425, maxCapacity: 1000, usagePct: 42.5, accent: 'blue' },
-      { name: 'Building B', status: 'Operational', usageKw: 678, maxCapacity: 1200, usagePct: 56.5, accent: 'green' },
-      { name: 'Building C', status: 'Operational', usageKw: 234, maxCapacity: 800, usagePct: 29.3, accent: 'orange' },
+      { name: 'Home A', status: 'Operational', usageKw: 425, maxCapacity: 1000, usagePct: 42.5, accent: 'blue' },
+      { name: 'Home B', status: 'Operational', usageKw: 678, maxCapacity: 1200, usagePct: 56.5, accent: 'green' },
+      { name: 'Home C', status: 'Operational', usageKw: 234, maxCapacity: 800, usagePct: 29.3, accent: 'orange' },
     ];
 
     if (recentReadings.length === 0 && buildings.length > 0) {
@@ -620,9 +620,9 @@ router.get('/analytics-trends', async (req, res) => {
     }));
     if (buildingComparison.length === 0) {
       buildingComparison.push(
-        { building: 'Building A', avgDailyKwh: 10200 },
-        { building: 'Building B', avgDailyKwh: 13400 },
-        { building: 'Building C', avgDailyKwh: 9100 },
+        { building: 'Home A', avgDailyKwh: 10200 },
+        { building: 'Home B', avgDailyKwh: 13400 },
+        { building: 'Home C', avgDailyKwh: 9100 },
       );
     }
 
@@ -680,7 +680,7 @@ router.get('/building-zones', async (req, res) => {
       const hasOffline = devs.some((d) => d.status === 'Offline');
       const status = hasOffline ? 'Offline' : b.status === 'active' ? 'Online' : b.status;
 
-      const demoUsage = { 'Building A': 425, 'Building B': 678, 'Building C': 234 };
+      const demoUsage = { 'Home A': 425, 'Home B': 678, 'Home C': 234 };
       const finalUsageKw = recentReadings.length > 0 ? usageKw : (demoUsage[b.name] || 0);
       const finalCapacityPercent = maxCapacity > 0 ? Math.round((finalUsageKw / maxCapacity) * 100) : 0;
 
@@ -701,9 +701,9 @@ router.get('/building-zones', async (req, res) => {
 
     if (buildingCards.length === 0) {
       buildingCards.push(
-        { name: 'Building A', address: '123 Industrial Ave', currentUsageKw: 425, maxCapacityKw: 1000, capacityPercent: 43, status: 'Online', totalZones: 5, trend: '+5.2%' },
-        { name: 'Building B', address: '456 Commerce St', currentUsageKw: 678, maxCapacityKw: 1200, capacityPercent: 56, status: 'Online', totalZones: 4, trend: '+3.8%' },
-        { name: 'Building C', address: '789 Innovation Blvd', currentUsageKw: 234, maxCapacityKw: 800, capacityPercent: 29, status: 'Online', totalZones: 3, trend: '+8.7%' },
+        { name: 'Home A', address: '123 Main St (Home/Office)', currentUsageKw: 425, maxCapacityKw: 1000, capacityPercent: 43, status: 'Online', totalZones: 5, trend: '+5.2%' },
+        { name: 'Home B', address: '456 Garden Ave (Home/Office)', currentUsageKw: 678, maxCapacityKw: 1200, capacityPercent: 56, status: 'Online', totalZones: 4, trend: '+3.8%' },
+        { name: 'Home C', address: '789 Oak Blvd (Home/Office)', currentUsageKw: 234, maxCapacityKw: 800, capacityPercent: 29, status: 'Online', totalZones: 3, trend: '+8.7%' },
       );
     }
 
@@ -782,8 +782,8 @@ router.get('/cost-management', async (req, res) => {
       const buildingBudget = MONTHLY_BUDGET * (b.totalDevices || 10) / (buildings.reduce((s, x) => s + (x.totalDevices || 10), 0) || 1);
       const buildingVariance = buildingBudget > 0 ? Math.round(((buildingCost - buildingBudget) / buildingBudget) * 1000) / 10 : 0;
       
-      const demoCosts = { 'Building A': 18200, 'Building B': 21500, 'Building C': 9020 };
-      const demoVariances = { 'Building A': -4.1, 'Building B': -7.3, 'Building C': -8.0 };
+      const demoCosts = { 'Home A': 18200, 'Home B': 21500, 'Home C': 9020 };
+      const demoVariances = { 'Home A': -4.1, 'Home B': -7.3, 'Home C': -8.0 };
       
       return {
         name: b.name,
@@ -872,139 +872,6 @@ router.get('/cost-management', async (req, res) => {
   }
 });
 
-// GET sustainability data
-router.get('/sustainability', async (req, res) => {
-  try {
-    const now = new Date();
-    const startOfYear = new Date(now.getFullYear(), 0, 1);
-    const kWh_RATE = 0.23;
-    const CO2_PER_KWH = 0.5;
-    const BASELINE_CO2_PER_KWH = 0.6;
-
-    const [buildings, readingsYTD, readingsLastYear] = await Promise.all([
-      Building.find().lean(),
-      SensorReading.find({ timestamp: { $gte: startOfYear } }).lean(),
-      SensorReading.find({
-        timestamp: {
-          $gte: new Date(now.getFullYear() - 1, 0, 1),
-          $lt: startOfYear,
-        },
-      }).lean(),
-    ]);
-
-    const totalKwhYTD = readingsYTD.reduce((s, r) => s + r.powerConsumption, 0);
-    const totalKwhLastYear = readingsLastYear.reduce((s, r) => s + r.powerConsumption, 0);
-    
-    const daysElapsed = Math.floor((now - startOfYear) / (24 * 60 * 60 * 1000));
-    const daysInYear = 365;
-    const projectedKwhYTD = daysElapsed > 0 ? (totalKwhYTD / daysElapsed) * daysInYear : totalKwhYTD;
-    const projectedKwhLastYear = readingsLastYear.length > 0 ? totalKwhLastYear : projectedKwhYTD * 1.1;
-
-    const co2YTD = projectedKwhYTD * CO2_PER_KWH;
-    const co2Baseline = projectedKwhLastYear * BASELINE_CO2_PER_KWH;
-    const co2Saved = Math.max(0, co2Baseline - co2YTD);
-    const co2SavedTons = Math.round((co2Saved / 1000) * 10) / 10;
-
-    const renewableShare = Math.round((1 - (co2YTD / co2Baseline)) * 100);
-    const efficiencyScore = co2SavedTons > 30 ? 'A+' : co2SavedTons > 25 ? 'A' : co2SavedTons > 20 ? 'A-' : co2SavedTons > 15 ? 'B+' : 'B';
-
-    const initiatives = [
-      {
-        id: 1,
-        name: 'LED Retrofit',
-        building: 'Building A',
-        impact: 'High',
-        progress: readingsYTD.length > 0 ? 80 : 80,
-      },
-      {
-        id: 2,
-        name: 'Solar Roof',
-        building: 'Building B',
-        impact: 'Very High',
-        progress: readingsYTD.length > 0 ? 55 : 55,
-      },
-      {
-        id: 3,
-        name: 'HVAC Optimization',
-        building: 'Building C',
-        impact: 'Medium',
-        progress: readingsYTD.length > 0 ? 40 : 40,
-      },
-    ];
-
-    // Calculate monthly trends from historical sensor readings (past 12 months)
-    const monthlyTrend = [];
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    
-    // Fetch readings for the past 12 months
-    const twelveMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1);
-    twelveMonthsAgo.setHours(0, 0, 0, 0);
-    
-    const historicalReadings = await SensorReading.find({
-      timestamp: { $gte: twelveMonthsAgo }
-    }).lean();
-    
-    // Group readings by month
-    const monthlyData = {};
-    historicalReadings.forEach((r) => {
-      const readingDate = new Date(r.timestamp);
-      const monthKey = `${readingDate.getFullYear()}-${readingDate.getMonth()}`;
-      if (!monthlyData[monthKey]) {
-        monthlyData[monthKey] = { kwh: 0, count: 0 };
-      }
-      monthlyData[monthKey].kwh += r.powerConsumption;
-      monthlyData[monthKey].count += 1;
-    });
-    
-    // Build monthly trend array
-    for (let i = 11; i >= 0; i--) {
-      const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
-      const monthKey = `${monthDate.getFullYear()}-${monthDate.getMonth()}`;
-      
-      const monthInfo = monthlyData[monthKey];
-      let monthKwh = 0;
-      
-      if (monthInfo && monthInfo.kwh > 0) {
-        monthKwh = monthInfo.kwh;
-      } else if (i === 0) {
-        // Current month - use readingsYTD if available
-        monthKwh = totalKwhYTD;
-      } else {
-        // Past months with no data - estimate based on average
-        const avgMonthlyKwh = totalKwhYTD / Math.max(1, now.getMonth() + 1);
-        monthKwh = avgMonthlyKwh * 0.9; // Slight variation
-      }
-      
-      // Calculate CO2 emissions (tons)
-      const monthCO2Kg = monthKwh * CO2_PER_KWH;
-      const monthCO2Tons = monthCO2Kg / 1000;
-      
-      // Calculate renewable share based on CO2 reduction vs baseline
-      const baselineCO2Kg = monthKwh * BASELINE_CO2_PER_KWH;
-      const co2Reduction = baselineCO2Kg > 0 ? ((baselineCO2Kg - monthCO2Kg) / baselineCO2Kg) * 100 : 0;
-      const monthRenewable = Math.max(0, Math.min(100, Math.round(co2Reduction)));
-      
-      monthlyTrend.push({
-        month: `${monthNames[monthDate.getMonth()]} ${monthDate.getFullYear()}`,
-        co2Tons: Math.round(monthCO2Tons * 10) / 10,
-        renewablePercent: monthRenewable,
-      });
-    }
-
-    res.json({
-      co2Saved: readingsYTD.length > 0 ? co2SavedTons : 32.4,
-      renewableShare: readingsYTD.length > 0 ? Math.max(0, Math.min(100, renewableShare)) : 38,
-      efficiencyScore: readingsYTD.length > 0 ? efficiencyScore : 'A-',
-      greenProjects: initiatives.length,
-      initiatives,
-      monthlyTrend,
-    });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
 // GET reports list
 router.get('/reports', async (req, res) => {
   try {
@@ -1026,21 +893,12 @@ router.get('/reports', async (req, res) => {
       },
       {
         id: 2,
-        name: 'Building Comparison Report',
+        name: 'Home Comparison Report',
         period: `Q${quarter} ${currentYear}`,
         type: 'XLSX',
         size: '640 KB',
         category: 'Energy Usage',
         generatedAt: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: 3,
-        name: 'Sustainability & CO₂ Report',
-        period: `${currentYear} YTD`,
-        type: 'PDF',
-        size: '1.8 MB',
-        category: 'Sustainability',
-        generatedAt: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
       },
       {
         id: 4,
@@ -1134,7 +992,7 @@ router.get('/reports/export', async (req, res) => {
       ['Estimated Cost', totalCost, 'USD'],
       ['Readings Count', readings.length, ''],
       [],
-      ['By Building', 'Consumption (kWh)', 'Cost (USD)', 'Readings'],
+      ['By Home', 'Consumption (kWh)', 'Cost (USD)', 'Readings'],
       ...Object.entries(byBuilding).map(([b, v]) => [
         b,
         Math.round(v.kwh * 10) / 10,

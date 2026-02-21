@@ -78,28 +78,27 @@ const ManagerBuildingZonesPage = () => {
   return (
     <div className="manager-page manager-building-zones-page">
       <div className="manager-page-header">
-        <h1>Building &amp; Zone Management</h1>
+        <h1>Homes &amp; Rooms</h1>
         <p>
-          Comprehensive building energy monitoring and spatial management system
+          Monitor power use by home, room, and device
         </p>
       </div>
 
       <div className="multi-building-card">
         <div className="multi-building-header">
           <div>
-            <h2>1. Multi-Building Overview Dashboard</h2>
+            <h2>1. Your Homes</h2>
             <p>
-              Real-time monitoring and management of all buildings in your
-              portfolio with comparative analytics
+              See all your homes and their power usage at a glance
             </p>
           </div>
           <button className="add-building-btn" onClick={() => setIsAddModalOpen(true)}>
-            + Add Building
+            + Add Home
           </button>
         </div>
 
         {loading ? (
-          <div className="building-loading">Loading buildings...</div>
+          <div className="building-loading">Loading...</div>
         ) : (
           <div className="multi-building-row">
             {data?.buildings?.map((b) => (
@@ -136,17 +135,17 @@ const ManagerBuildingZonesPage = () => {
                     <span className="trend">{b.trend}</span>
                   </div>
                 </div>
-                <div className="summary-footer">
+                  <div className="summary-footer">
                   <span>
-                    {b.totalZones} zones • {b.totalFloors} floors • {b.totalDevices} devices
+                    {b.totalZones} rooms • {b.totalFloors} floors • {b.totalDevices} devices
                   </span>
                 </div>
               </div>
             ))}
             {(!data?.buildings?.length) && (
               <div className="building-empty">
-                <p>No buildings found. Add your first building below.</p>
-                <button onClick={() => setIsAddModalOpen(true)}>Add Building</button>
+                <p>No homes yet. Add your first home below.</p>
+                <button onClick={() => setIsAddModalOpen(true)}>Add Home</button>
               </div>
             )}
           </div>
@@ -154,10 +153,9 @@ const ManagerBuildingZonesPage = () => {
       </div>
 
       <div className="cross-building-card">
-        <h2>2. Cross-Building Performance Comparison</h2>
+        <h2>2. Compare Homes</h2>
         <p>
-          Compare key metrics such as average daily usage, peak demand, and load
-          factors across buildings.
+          Compare daily power use across your homes
         </p>
         {data?.comparison?.length ? (
           <div className="cross-building-chart">
@@ -190,18 +188,18 @@ const ManagerBuildingZonesPage = () => {
           setNewBuilding({ ...defaultNewBuilding });
           setAddError('');
         }}
-        title="Add New Building"
+        title="Add New Home"
         onSubmit={handleAddBuilding}
       >
         {addError && <div className="form-error" style={{ marginBottom: '1rem', padding: '0.5rem', background: '#fef2f2', color: '#dc2626', borderRadius: '6px' }}>{addError}</div>}
         <div className="form-group">
-          <label htmlFor="building-name">Building Name *</label>
+          <label htmlFor="building-name">Name *</label>
           <input
             id="building-name"
             type="text"
             value={newBuilding.name}
             onChange={(e) => setNewBuilding({ ...newBuilding, name: e.target.value })}
-            placeholder="e.g., Building D"
+            placeholder="e.g. My Home"
             required
           />
         </div>
@@ -240,7 +238,7 @@ const ManagerBuildingZonesPage = () => {
             />
           </div>
           <div className="form-group">
-            <label htmlFor="building-zones">Total Zones</label>
+            <label htmlFor="building-zones">Rooms</label>
             <input
               id="building-zones"
               type="number"

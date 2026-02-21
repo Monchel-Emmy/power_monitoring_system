@@ -19,7 +19,6 @@ import ManagerAnalyticsTrendsPage from './pages/ManagerAnalyticsTrendsPage';
 import ManagerAlertsNotificationsPage from './pages/ManagerAlertsNotificationsPage';
 import ManagerBuildingZonesPage from './pages/ManagerBuildingZonesPage';
 import ManagerCostManagementPage from './pages/ManagerCostManagementPage';
-import ManagerSustainabilityPage from './pages/ManagerSustainabilityPage';
 import ManagerReportsPage from './pages/ManagerReportsPage';
 
 function AppRoutes() {
@@ -47,7 +46,6 @@ function AppRoutes() {
         <Route path="alerts-notifications" element={<ManagerAlertsNotificationsPage />} />
         <Route path="building-zones" element={<ManagerBuildingZonesPage />} />
         <Route path="cost-management" element={<ManagerCostManagementPage />} />
-        <Route path="sustainability" element={<ManagerSustainabilityPage />} />
         <Route path="reports" element={<ManagerReportsPage />} />
       </Route>
 

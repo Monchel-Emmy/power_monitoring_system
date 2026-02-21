@@ -63,7 +63,7 @@ const Header = ({ systemName, adminPanel }) => {
                 className={`view-switch-item ${isManagerView ? 'selected' : ''}`}
                 onClick={() => handleSwitchView('manager')}
               >
-                <span className="view-title">Building Manager</span>
+                <span className="view-title">Home &amp; Building Manager</span>
                 <span className="view-sub">Operations &amp; monitoring</span>
               </button>
             </div>

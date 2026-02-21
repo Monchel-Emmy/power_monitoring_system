@@ -146,14 +146,14 @@ const ManagerCostManagementPage = () => {
       </div>
 
       <div className="cost-table-card">
-        <h2>2. Building Cost Breakdown</h2>
+        <h2>2. Cost by Home</h2>
         {loading ? (
           <div className="cost-loading">Loading...</div>
         ) : (
           <table>
             <thead>
               <tr>
-                <th>Building</th>
+                <th>Home</th>
                 <th>Monthly Cost</th>
                 <th>Budget Variance</th>
               </tr>
@@ -170,7 +170,7 @@ const ManagerCostManagementPage = () => {
               ))}
               {(!data?.buildingCosts?.length) && (
                 <tr>
-                  <td colSpan="3" className="cost-empty">No building data. Run seed to populate.</td>
+                  <td colSpan="3" className="cost-empty">No homes yet. Run seed or add a home.</td>
                 </tr>
               )}
             </tbody>

@@ -10,8 +10,8 @@ function ManagerLayout() {
       <ManagerSidebar />
       <div className="main-content">
         <Header
-          systemName="Power Monitoring System"
-          adminPanel="Building Manager Panel"
+          systemName="In-House Power Monitoring System"
+          adminPanel="Home &amp; Building Manager Panel"
         />
         <Outlet />
       </div>

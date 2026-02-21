@@ -15,6 +15,15 @@
   color: #dc2626;
 }
 
+.modal-error-msg {
+  color: #dc2626;
+  font-size: 0.9rem;
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  background: #fef2f2;
+  border-radius: 6px;
+}
+
 .building-config-header {
   display: flex;
   justify-content: space-between;
@@ -59,7 +68,7 @@
 /* Summary stats - white cards with colored numbers */
 .building-config-stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 20px;
   margin-bottom: 28px;
 }
@@ -203,7 +212,7 @@
 /* Building metrics - 4 cards in a row */
 .building-metrics {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
   margin-bottom: 24px;
 }
@@ -347,6 +356,56 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
+}
+
+.rooms-list-section {
+  margin-top: 4px;
+}
+
+.room-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.room-row input:first-of-type {
+  flex: 1;
+  min-width: 0;
+}
+
+.room-row input[type="number"] {
+  width: 80px;
+  flex-shrink: 0;
+}
+
+.room-row-remove {
+  flex-shrink: 0;
+  padding: 8px;
+  border: none;
+  background: #fef2f2;
+  color: #dc2626;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.room-row-remove:hover {
+  background: #fee2e2;
+}
+
+.add-room-btn {
+  margin-top: 6px;
+  padding: 8px 12px;
+  font-size: 0.875rem;
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px dashed #93c5fd;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.add-room-btn:hover {
+  background: #dbeafe;
 }
 
 @media (max-width: 900px) {

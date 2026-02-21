@@ -89,7 +89,7 @@ const ManagerReportsPage = () => {
     <div className="manager-page manager-reports-page">
       <div className="manager-page-header">
         <h1>Reports</h1>
-        <p>Generate and download energy, cost, and sustainability reports.</p>
+        <p>Generate and download energy and cost reports.</p>
       </div>
 
       <div className="reports-filters">
@@ -103,7 +103,6 @@ const ManagerReportsPage = () => {
           <option value="All Report Types">All Report Types</option>
           <option value="Energy Usage">Energy Usage</option>
           <option value="Cost">Cost</option>
-          <option value="Sustainability">Sustainability</option>
         </select>
         <button className="new-report-btn" onClick={() => setShowGenerateModal(true)}>
           + New Report
@@ -164,7 +163,6 @@ const ManagerReportsPage = () => {
                 >
                   <option value="Energy Usage">Energy Usage</option>
                   <option value="Cost">Cost</option>
-                  <option value="Sustainability">Sustainability</option>
                 </select>
               </label>
               <label>

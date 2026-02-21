@@ -54,7 +54,7 @@ const DeviceSchema = new mongoose.Schema({
 
 DeviceSchema.pre('save', function (next) {
   this.updatedAt = Date.now();
-  next();
+  if (typeof next === 'function') next();
 });
 
 module.exports = mongoose.model('Device', DeviceSchema);

@@ -45,7 +45,7 @@ ZoneSchema.index({ name: 1, building: 1 }, { unique: true });
 // Update `updatedAt` field on save
 ZoneSchema.pre('save', function (next) {
   this.updatedAt = Date.now();
-  next();
+  if (typeof next === 'function') next();
 });
 
 module.exports = mongoose.model('Zone', ZoneSchema);

@@ -12,7 +12,7 @@ const ManagerLiveMonitoringPage = () => {
     const fetchOverview = async () => {
       try {
         const res = await fetch(`${API_BASE}/api/manager/live-overview`);
-        if (!res.ok) throw new Error('Failed to fetch');
+        if (!res.ok) throw new Error(res.status === 500 ? 'Server error' : `Server returned ${res.status}`);
         const data = await res.json();
         setOverview(data);
       } catch (err) {
@@ -62,11 +62,13 @@ const ManagerLiveMonitoringPage = () => {
     return (
       <div className="manager-page manager-live-page">
         <div className="manager-page-header">
-          <h1>Live Power Monitoring</h1>
-          <p>Real-time energy consumption tracking and analysis</p>
+          <h1>Live Power</h1>
+          <p>See your power use in real time</p>
         </div>
         <div className="manager-error-state">
-          <p>Unable to load live data. Ensure the backend is running and the database is seeded (<code>npm run seed</code> in backend).</p>
+          <p>Unable to load live data.</p>
+          <p>If you see &quot;Failed to fetch&quot; elsewhere: the app cannot reach the backend. Run the backend locally (<code>npm start</code> in backend folder, port 4000) or set <code>REACT_APP_API_BASE</code> to your deployed backend URL.</p>
+          <p>If the backend is running: ensure the database is seeded (<code>npm run seed</code> in backend).</p>
         </div>
       </div>
     );
@@ -75,8 +77,8 @@ const ManagerLiveMonitoringPage = () => {
   return (
     <div className="manager-page manager-live-page">
       <div className="manager-page-header">
-        <h1>Live Power Monitoring</h1>
-        <p>Real-time energy consumption tracking and analysis</p>
+        <h1>Live Power</h1>
+        <p>See your power use in real time</p>
       </div>
 
       <div className="manager-kpi-row">

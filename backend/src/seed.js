@@ -12,25 +12,25 @@ dotenv.config();
 
 const DB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/powermonitoring';
 
-const BUILDING_NAMES = ['Building A', 'Building B', 'Building C'];
+const BUILDING_NAMES = ['Home A', 'Home B', 'Home C'];
 
 const zoneDistA = [
-  { zoneName: 'Zone 1', devicesCount: 9, area: 1667 }, { zoneName: 'Zone 2', devicesCount: 3, area: 1667 },
-  { zoneName: 'Zone 3', devicesCount: 7, area: 1667 }, { zoneName: 'Zone 4', devicesCount: 3, area: 1667 },
-  { zoneName: 'Zone 5', devicesCount: 9, area: 1667 }, { zoneName: 'Zone 6', devicesCount: 11, area: 1667 },
-  { zoneName: 'Zone 7', devicesCount: 4, area: 1667 }, { zoneName: 'Zone 8', devicesCount: 5, area: 1667 },
-  { zoneName: 'Zone 9', devicesCount: 9, area: 1667 }, { zoneName: 'Zone 10', devicesCount: 3, area: 1667 },
-  { zoneName: 'Zone 11', devicesCount: 2, area: 1667 }, { zoneName: 'Zone 12', devicesCount: 4, area: 1667 },
-  { zoneName: 'Zone 13', devicesCount: 6, area: 1667 }, { zoneName: 'Zone 14', devicesCount: 1, area: 1667 },
-  { zoneName: 'Zone 15', devicesCount: 2, area: 1667 },
+  { zoneName: 'Room 1', devicesCount: 9, area: 1667 }, { zoneName: 'Room 2', devicesCount: 3, area: 1667 },
+  { zoneName: 'Room 3', devicesCount: 7, area: 1667 }, { zoneName: 'Room 4', devicesCount: 3, area: 1667 },
+  { zoneName: 'Room 5', devicesCount: 9, area: 1667 }, { zoneName: 'Room 6', devicesCount: 11, area: 1667 },
+  { zoneName: 'Room 7', devicesCount: 4, area: 1667 }, { zoneName: 'Room 8', devicesCount: 5, area: 1667 },
+  { zoneName: 'Room 9', devicesCount: 9, area: 1667 }, { zoneName: 'Room 10', devicesCount: 3, area: 1667 },
+  { zoneName: 'Room 11', devicesCount: 2, area: 1667 }, { zoneName: 'Room 12', devicesCount: 4, area: 1667 },
+  { zoneName: 'Room 13', devicesCount: 6, area: 1667 }, { zoneName: 'Room 14', devicesCount: 1, area: 1667 },
+  { zoneName: 'Room 15', devicesCount: 2, area: 1667 },
 ];
-const zoneDistB = Array.from({ length: 24 }, (_, i) => ({ zoneName: `Zone ${i + 1}`, devicesCount: Math.floor(72 / 24) + (i < 72 % 24 ? 1 : 0), area: 1667 }));
-const zoneDistC = Array.from({ length: 9 }, (_, i) => ({ zoneName: `Zone ${i + 1}`, devicesCount: Math.floor(27 / 9) + (i < 27 % 9 ? 1 : 0), area: 1667 }));
+const zoneDistB = Array.from({ length: 24 }, (_, i) => ({ zoneName: `Room ${i + 1}`, devicesCount: Math.floor(72 / 24) + (i < 72 % 24 ? 1 : 0), area: 1667 }));
+const zoneDistC = Array.from({ length: 9 }, (_, i) => ({ zoneName: `Room ${i + 1}`, devicesCount: Math.floor(27 / 9) + (i < 27 % 9 ? 1 : 0), area: 1667 }));
 
 const buildingsData = [
-  { name: 'Building A', address: '123 Industrial Ave, Tech Park', status: 'active', totalFloors: 5, totalZones: 15, totalDevices: 45, totalArea: 25000, zoneDistribution: zoneDistA },
-  { name: 'Building B', address: '456 Commerce St, Business District', status: 'active', totalFloors: 8, totalZones: 24, totalDevices: 72, totalArea: 40000, zoneDistribution: zoneDistB },
-  { name: 'Building C', address: '789 Innovation Blvd, Innovation Hub', status: 'maintenance', totalFloors: 3, totalZones: 9, totalDevices: 27, totalArea: 15000, zoneDistribution: zoneDistC },
+  { name: 'Home A', address: '123 Main St (Home / Office)', status: 'active', totalFloors: 5, totalZones: 15, totalDevices: 45, totalArea: 25000, zoneDistribution: zoneDistA },
+  { name: 'Home B', address: '456 Garden Ave (Home / Office)', status: 'active', totalFloors: 8, totalZones: 24, totalDevices: 72, totalArea: 40000, zoneDistribution: zoneDistB },
+  { name: 'Home C', address: '789 Oak Blvd (Home / Office)', status: 'maintenance', totalFloors: 3, totalZones: 9, totalDevices: 27, totalArea: 15000, zoneDistribution: zoneDistC },
 ];
 
 const seedDB = async () => {
@@ -38,7 +38,7 @@ const seedDB = async () => {
     await mongoose.connect(DB_URI);
     console.log('MongoDB connected for seeding');
 
-    // 1) Ensure buildings "Building A", "Building B", "Building C" exist
+    // 1) Ensure homes "Home A", "Home B", "Home C" exist
     await Building.deleteMany({ name: { $in: BUILDING_NAMES } });
     const insertedBuildings = await Building.insertMany(buildingsData);
     console.log('Buildings seeded:', insertedBuildings.map(b => b.name).join(', '));
@@ -88,11 +88,11 @@ const seedDB = async () => {
     }
     await Device.deleteMany({});
     const devicesData = [
-      { id: 'D001', name: 'Power Meter A1', type: 'Smart Meter', location: 'Building A - Floor 1', lastSync: '2 minutes ago', dataRate: '1.2 MB/s', battery: '95%', status: 'Online' },
-      { id: 'D002', name: 'Power Meter A2', type: 'Smart Meter', location: 'Building A - Floor 2', lastSync: '1 minute ago', dataRate: '1.1 MB/s', battery: '88%', status: 'Online' },
-      { id: 'D003', name: 'Sensor B1', type: 'IoT Sensor', location: 'Building B - Floor 1', lastSync: '15 minutes ago', dataRate: '0.8 MB/s', battery: '45%', status: 'Warning' },
-      { id: 'D004', name: 'Smart Plug C1', type: 'Smart Meter', location: 'Building C - Floor 1', lastSync: '3 minutes ago', dataRate: '1.3 MB/s', battery: '92%', status: 'Online' },
-      { id: 'D005', name: 'Sensor A3', type: 'IoT Sensor', location: 'Building A - Floor 3', lastSync: '2 hours ago', dataRate: 'N/A', battery: '12%', status: 'Offline' },
+      { id: 'D001', name: 'Power Meter A1', type: 'Smart Meter', location: 'Home A - Room 1', lastSync: '2 minutes ago', dataRate: '1.2 MB/s', battery: '95%', status: 'Online' },
+      { id: 'D002', name: 'Power Meter A2', type: 'Smart Meter', location: 'Home A - Room 2', lastSync: '1 minute ago', dataRate: '1.1 MB/s', battery: '88%', status: 'Online' },
+      { id: 'D003', name: 'Sensor B1', type: 'IoT Sensor', location: 'Home B - Room 1', lastSync: '15 minutes ago', dataRate: '0.8 MB/s', battery: '45%', status: 'Warning' },
+      { id: 'D004', name: 'Smart Plug C1', type: 'Smart Meter', location: 'Home C - Room 1', lastSync: '3 minutes ago', dataRate: '1.3 MB/s', battery: '92%', status: 'Online' },
+      { id: 'D005', name: 'Sensor A3', type: 'IoT Sensor', location: 'Home A - Room 3', lastSync: '2 hours ago', dataRate: 'N/A', battery: '12%', status: 'Offline' },
     ];
     await Device.insertMany(devicesData);
     console.log('Devices seeded:', devicesData.length);
@@ -145,7 +145,7 @@ const seedDB = async () => {
     const alertsData = [
       {
         timestamp: new Date(now.getTime() - 2 * 60 * 60 * 1000),
-        building: 'Building A',
+        building: 'Home A',
         device: deviceA3?._id,
         type: 'Device Offline',
         severity: 'High',
@@ -154,7 +154,7 @@ const seedDB = async () => {
       },
       {
         timestamp: new Date(now.getTime() - 4 * 60 * 60 * 1000),
-        building: 'Building B',
+        building: 'Home B',
         device: deviceB1?._id,
         type: 'Battery Low',
         severity: 'Medium',
@@ -165,7 +165,7 @@ const seedDB = async () => {
       },
       {
         timestamp: new Date(now.getTime() - 6 * 60 * 60 * 1000),
-        building: 'Building A',
+        building: 'Home A',
         type: 'High Consumption',
         severity: 'High',
         status: 'Acknowledged',
@@ -175,7 +175,7 @@ const seedDB = async () => {
       },
       {
         timestamp: new Date(now.getTime() - 24 * 60 * 60 * 1000),
-        building: 'Building C',
+        building: 'Home C',
         type: 'Voltage Anomaly',
         severity: 'High',
         status: 'Resolved',
@@ -185,7 +185,7 @@ const seedDB = async () => {
       },
       {
         timestamp: new Date(now.getTime() - 36 * 60 * 60 * 1000),
-        building: 'Building A',
+        building: 'Home A',
         type: 'Threshold Breach',
         severity: 'Low',
         status: 'Resolved',

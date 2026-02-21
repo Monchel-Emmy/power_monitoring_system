@@ -15,7 +15,8 @@ const getSensorReading = async (req, res, next) => {
     return res.status(500).json({ message: err.message });
   }
   res.sensorReading = sensorReading;
-  next();
+  if (typeof next === 'function') next();
+  else res.json(res.sensorReading);
 };
 
 // Get all sensor readings (supports device ID filter)

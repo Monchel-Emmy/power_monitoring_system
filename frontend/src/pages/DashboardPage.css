@@ -125,6 +125,19 @@
   color: #e74c3c;
 }
 
+.content-body .error-hint {
+  margin-top: 0.75rem;
+  font-size: 0.95rem;
+  color: #555;
+  max-width: 520px;
+}
+
+.content-body .error-hint code {
+  background: #f0f0f0;
+  padding: 0.1em 0.4em;
+  border-radius: 4px;
+}
+
 .config-section {
   margin-bottom: 2rem;
   border: 1px solid #e0e0e0;

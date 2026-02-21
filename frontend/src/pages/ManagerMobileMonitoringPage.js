@@ -115,15 +115,15 @@ const ManagerMobileMonitoringPage = () => {
           </div>
           <div className="mobile-stat-card violet">
             <div className="stat-icon"><HiOfficeBuilding /></div>
-            <div className="label">Buildings Online</div>
+            <div className="label">Homes Online</div>
             <div className="value">{data?.buildingsOnline ?? '—'}</div>
-            <div className="sub">{data?.buildingsAllActive ? 'All systems active' : 'Some offline'}</div>
+            <div className="sub">{data?.buildingsAllActive ? 'All active' : 'Some offline'}</div>
           </div>
         </div>
       </div>
 
       <div className="mobile-buildings-section">
-        <h2>Building Status - Swipe to Navigate</h2>
+        <h2>Home Status</h2>
         <div className="mobile-buildings-scroll">
           {(data?.buildings ?? []).map((b) => (
             <div key={b.name} className={`mobile-building-card accent-${b.accent || 'blue'}`}>
@@ -144,7 +144,7 @@ const ManagerMobileMonitoringPage = () => {
           ))}
           {(!data?.buildings?.length) && (
             <div className="mobile-building-card accent-blue">
-              <p className="no-building-data">Run seed to load building data</p>
+              <p className="no-building-data">No homes yet. Run seed or add a home.</p>
             </div>
           )}
         </div>
@@ -184,7 +184,7 @@ const ManagerMobileMonitoringPage = () => {
                     <span className="mobile-details-value">{detailsExtra.totalFloors ?? '—'}</span>
                   </div>
                   <div className="mobile-details-item">
-                    <span className="mobile-details-label">Zones</span>
+                    <span className="mobile-details-label">Rooms</span>
                     <span className="mobile-details-value">{detailsExtra.totalZones ?? '—'}</span>
                   </div>
                   <div className="mobile-details-item">

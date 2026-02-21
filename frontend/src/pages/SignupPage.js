@@ -36,7 +36,7 @@ function SignupPage() {
           username: username.trim(),
           email: email.trim(),
           password,
-          role: role === 'admin' ? 'Administrator' : 'Building Manager',
+          role: role === 'admin' ? 'Administrator' : 'Home & Building Manager',
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -57,14 +57,14 @@ function SignupPage() {
     setLoading(false);
   };
 
-  const roleLabel = role === 'admin' ? 'Administrator' : 'Building Manager';
+  const roleLabel = role === 'admin' ? 'Administrator' : 'Home & Building Manager';
 
   return (
     <div className="login-container">
       <div className="login-box signup-box">
         <div className="login-logo" />
         <h1 className="login-title">Sign Up</h1>
-        <p className="login-subtitle">Create an account for Power Usage Monitoring</p>
+        <p className="login-subtitle">Create an account for In-House Power Monitoring</p>
 
         <div className="login-role-section">
           <span className="login-role-label">Select Role</span>
@@ -83,7 +83,7 @@ function SignupPage() {
               onClick={() => setRole('manager')}
             >
               <span className="login-role-icon person" />
-              Building Manager
+              Home &amp; Building Manager
             </button>
           </div>
         </div>

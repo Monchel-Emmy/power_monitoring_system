@@ -6,8 +6,8 @@ function ManagerSidebar() {
   return (
     <aside className="manager-sidebar">
       <div className="manager-sidebar-header">
-        <span className="manager-sidebar-section">BUILDING MANAGER</span>
-        <span className="manager-sidebar-subtitle">Operations &amp; Monitoring</span>
+        <span className="manager-sidebar-section">HOME &amp; BUILDING</span>
+        <span className="manager-sidebar-subtitle">In-House Monitoring</span>
       </div>
 
       <nav>
@@ -39,17 +39,12 @@ function ManagerSidebar() {
           </li>
           <li>
             <NavLink to="/manager/building-zones">
-              Building &amp; Zones
+              Homes &amp; Rooms
             </NavLink>
           </li>
           <li>
             <NavLink to="/manager/cost-management">
               Cost Management
-            </NavLink>
-          </li>
-          <li>
-            <NavLink to="/manager/sustainability">
-              Sustainability
             </NavLink>
           </li>
           <li>

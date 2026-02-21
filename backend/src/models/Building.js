@@ -55,7 +55,7 @@ const BuildingSchema = new mongoose.Schema({
 // Update `updatedAt` field on save
 BuildingSchema.pre('save', function (next) {
   this.updatedAt = Date.now();
-  next();
+  if (typeof next === 'function') next();
 });
 
 module.exports = mongoose.model('Building', BuildingSchema);

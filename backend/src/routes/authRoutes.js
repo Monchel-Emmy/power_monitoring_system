@@ -13,7 +13,7 @@ router.post('/signup', async (req, res) => {
     if (!username || !password || !email) {
       return res.status(400).json({ message: 'Username, password and email are required' });
     }
-    const normalizedRole = (role === 'Administrator' || role === 'admin') ? 'admin' : (role === 'Building Manager' || role === 'manager') ? 'manager' : 'user';
+    const normalizedRole = (role === 'Administrator' || role === 'admin') ? 'admin' : (role === 'Building Manager' || role === 'Home & Building Manager' || role === 'manager') ? 'manager' : 'user';
     const existing = await User.findOne({ $or: [{ username: username.trim() }, { email: email.trim() }] });
     if (existing) {
       return res.status(400).json({ message: 'Username or email already exists' });
@@ -61,7 +61,7 @@ router.post('/login', async (req, res) => {
     if (!match) {
       return res.status(401).json({ message: 'Invalid username or password' });
     }
-    const requestedRole = (role === 'Administrator' || role === 'admin') ? 'admin' : (role === 'Building Manager' || role === 'manager') ? 'manager' : null;
+    const requestedRole = (role === 'Administrator' || role === 'admin') ? 'admin' : (role === 'Building Manager' || role === 'Home & Building Manager' || role === 'manager') ? 'manager' : null;
     if (requestedRole && user.role !== requestedRole) {
       return res.status(403).json({ message: 'You do not have access for the selected role' });
     }

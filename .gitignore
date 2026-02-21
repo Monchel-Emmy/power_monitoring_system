@@ -18,6 +18,7 @@ dist/
 
 # MongoDB backup (local dumps)
 powermonitoring-backup/
+dump/
 
 # Logs and misc
 *.log

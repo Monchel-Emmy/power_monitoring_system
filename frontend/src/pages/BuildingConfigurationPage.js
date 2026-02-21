@@ -173,12 +173,6 @@ const BuildingConfigurationPage = () => {
     }
   };
 
-  const ensureEditHasRoom = () => {
-    if (!currentBuilding) return;
-    const dist = currentBuilding.zoneDistribution || [];
-    if (dist.length === 0) setCurrentBuilding({ ...currentBuilding, zoneDistribution: [{ zoneName: 'Room 1', devicesCount: 0 }] });
-  };
-
   if (loading) return <div className="building-config-page"><p className="loading-msg">Loading...</p></div>;
   if (error) return <div className="building-config-page"><p className="error-msg">{error}</p></div>;
 

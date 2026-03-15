@@ -27,9 +27,10 @@ const SensorSimulatorPage = () => {
         if (data?.length && !selectedDeviceId) setSelectedDeviceId(String(data[0]._id));
       })
       .catch(() => setMessage({ type: 'error', text: 'Failed to load devices' }));
+    // Only run once on mount; we intentionally don't include selectedDeviceId
+    // in the dependency array so we don't refetch every time the user changes it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const selectedDevice = devices.find((d) => String(d._id) === String(selectedDeviceId));
 
   const sendOneReading = async (e) => {
     e.preventDefault();

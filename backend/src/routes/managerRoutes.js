@@ -4,6 +4,8 @@ const SensorReading = require('../models/SensorReading');
 const Device = require('../models/Device');
 const Building = require('../models/Building');
 const { generatePredictions } = require('../services/predictiveAnalytics');
+const { getAllowedBuildingIds } = require('../middleware/managerAuth');
+const { costFrwResidential } = require('../utils/tariff');
 
 // Helper: get home name from device location (e.g. "Home A - Room 1" or "Building A - Room 1" -> "Home A" / "Building A")
 function getBuildingFromLocation(loc) {
@@ -12,16 +14,50 @@ function getBuildingFromLocation(loc) {
   return m ? m[0] : 'Unknown';
 }
 
-// GET live overview – aggregated from power-meter IoT data
+// Helper: get room name from device location (e.g. "Home A - Room 1" -> "Room 1", "Home A - Kitchen" -> "Kitchen")
+function getRoomFromLocation(loc) {
+  if (!loc || typeof loc !== 'string') return 'Unknown';
+  const dash = loc.indexOf(' - ');
+  return dash >= 0 ? loc.slice(dash + 3).trim() || 'Unknown' : 'Unknown';
+}
+
+/** Get buildings the current user is allowed to see (all for admin/no-auth, only assigned for manager). */
+async function getBuildingsForManager(req) {
+  const allowedIds = getAllowedBuildingIds(req);
+  if (allowedIds === null) return await Building.find().lean();
+  if (allowedIds.length === 0) return [];
+  return await Building.find({ _id: { $in: allowedIds } }).lean();
+}
+
+// GET live overview – aggregated from power-meter IoT data (scoped to manager's assigned buildings)
 router.get('/live-overview', async (req, res) => {
   try {
+    const buildings = await getBuildingsForManager(req);
+    const allowedBuildingNames = new Set(buildings.map((b) => b.name));
+
+    // For manager with assigned buildings: only include readings from devices in those buildings
+    let allowedDeviceIds = null;
+    let devicesInScope = [];
+    const allDevices = await Device.find().lean();
+    if (getAllowedBuildingIds(req) !== null) {
+      devicesInScope = allDevices.filter((d) => allowedBuildingNames.has(getBuildingFromLocation(d.location || '')));
+      allowedDeviceIds = devicesInScope.map((d) => d._id);
+    } else {
+      devicesInScope = allDevices;
+    }
+
+    const deviceFilter = allowedDeviceIds !== null && allowedDeviceIds.length > 0
+      ? { device: { $in: allowedDeviceIds } }
+      : allowedDeviceIds !== null && allowedDeviceIds.length === 0
+        ? { device: { $in: [] } }
+        : {};
+
     const now = new Date();
     const startOfToday = new Date(now);
     startOfToday.setHours(0, 0, 0, 0);
     const startOfYesterday = new Date(startOfToday);
     startOfYesterday.setDate(startOfYesterday.getDate() - 1);
 
-    // Latest readings (last 15 min) for current power
     const last15Min = new Date(now.getTime() - 15 * 60 * 1000);
     const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
@@ -31,11 +67,11 @@ router.get('/live-overview', async (req, res) => {
       yesterdayReadings,
       hourlyAgg,
     ] = await Promise.all([
-      SensorReading.find({ timestamp: { $gte: last15Min } }).lean(),
-      SensorReading.find({ timestamp: { $gte: startOfToday } }).lean(),
-      SensorReading.find({ timestamp: { $gte: startOfYesterday, $lt: startOfToday } }).lean(),
+      SensorReading.find({ ...deviceFilter, timestamp: { $gte: last15Min } }).lean(),
+      SensorReading.find({ ...deviceFilter, timestamp: { $gte: startOfToday } }).lean(),
+      SensorReading.find({ ...deviceFilter, timestamp: { $gte: startOfYesterday, $lt: startOfToday } }).lean(),
       SensorReading.aggregate([
-        { $match: { timestamp: { $gte: last24h } } },
+        { $match: { ...deviceFilter, timestamp: { $gte: last24h } } },
         {
           $group: {
             _id: {
@@ -50,7 +86,7 @@ router.get('/live-overview', async (req, res) => {
       ]),
     ]);
 
-    let currentPowerKw = recentReadings.length
+    const currentPowerKw = recentReadings.length
       ? Math.round(recentReadings.reduce((s, r) => s + r.powerConsumption, 0) / recentReadings.length * 10) / 10
       : 0;
     const todaysKwh = todayReadings.reduce((s, r) => s + r.powerConsumption, 0);
@@ -59,19 +95,22 @@ router.get('/live-overview', async (req, res) => {
       ? Math.round(((todaysKwh - yesterdaysKwh) / yesterdaysKwh) * 1000) / 10
       : 0;
 
-    const avgVoltage = recentReadings.length && recentReadings.some((r) => r.voltage)
-      ? Math.round(recentReadings.filter((r) => r.voltage).reduce((s, r) => s + r.voltage, 0) / recentReadings.filter((r) => r.voltage).length)
-      : 220;
+    const voltageReadings = recentReadings.filter((r) => r.voltage != null);
+    const avgVoltage = voltageReadings.length
+      ? Math.round(voltageReadings.reduce((s, r) => s + r.voltage, 0) / voltageReadings.length)
+      : 0;
 
-    const capacityKw = 500;
-    const capacityUsagePercent = Math.min(100, Math.round((currentPowerKw / capacityKw) * 100));
+    const totalCapacityKw = buildings.length
+      ? buildings.reduce((sum, b) => sum + ((b.totalDevices || 10) * 18), 0)
+      : 500;
+    const capacityUsagePercent = totalCapacityKw > 0
+      ? Math.min(100, Math.round((currentPowerKw / totalCapacityKw) * 100))
+      : 0;
 
-    const deviceCount = await Device.countDocuments();
-    const warningCount = await Device.countDocuments({ status: 'Warning' });
-    const offlineCount = await Device.countDocuments({ status: 'Offline' });
+    const warningCount = devicesInScope.filter((d) => d.status === 'Warning').length;
+    const offlineCount = devicesInScope.filter((d) => d.status === 'Offline').length;
     const activeAlerts = warningCount + offlineCount;
 
-    // Build chart: 8 points for last 24h (every 3h) – sample at 00, 03, 06, 09, 12, 15, 18, 21
     const hourMap = {};
     hourlyAgg.forEach((a) => {
       const key = a._id.hour;
@@ -89,64 +128,36 @@ router.get('/live-overview', async (req, res) => {
       ? hourMap[now.getHours()].reduce((s, v) => s + v, 0) / hourMap[now.getHours()].length
       : chartPoints[chartPoints.length - 1] || 0;
     chartPoints.push(Math.round(currentHourAvg * 10) / 10);
-    if (chartPoints.every((p) => p === 0)) chartPoints = [250, 180, 245, 340, 480, 520, 420];
 
-    // Fallback to demo values if no sensor data (run npm run seed)
-    if (recentReadings.length === 0 && todayReadings.length === 0) {
-      currentPowerKw = currentPowerKw || 425;
-    }
-    const todaysKwhFinal = todayReadings.length ? Math.round(todaysKwh * 10) / 10 : 12456;
+    const todaysKwhFinal = Math.round(todaysKwh * 10) / 10;
 
-    // Building Usage Comparison + System Status
-    const devices = await Device.find().lean();
-    const buildings = await Building.find().lean();
     const buildingCapacityMap = Object.fromEntries(buildings.map((b) => [b.name, (b.totalDevices || 10) * 18]));
-    const deviceIdToLocation = Object.fromEntries(devices.map((d) => [d._id.toString(), d.location || '']));
+    const deviceIdToLocation = Object.fromEntries(allDevices.map((d) => [d._id.toString(), d.location || '']));
 
     const byBuilding = {};
     recentReadings.forEach((r) => {
       const loc = deviceIdToLocation[r.device?.toString()] || '';
       const b = getBuildingFromLocation(loc);
-      if (!byBuilding[b]) byBuilding[b] = { power: 0, devices: new Set() };
+      if (!allowedBuildingNames.has(b)) return;
+      if (!byBuilding[b]) byBuilding[b] = { power: 0 };
       byBuilding[b].power += r.powerConsumption;
-      byBuilding[b].devices.add(r.device?.toString());
     });
-    let buildingUsage = buildings.map((b) => {
+    const buildingUsage = buildings.map((b) => {
       const usage = byBuilding[b.name] || { power: 0 };
       const currentUsage = Math.round(usage.power * 10) / 10;
       const maxCapacity = buildingCapacityMap[b.name] || 1000;
       return { building: b.name, currentUsage, maxCapacity };
     });
-    if (recentReadings.length === 0 && buildingUsage.length > 0) {
-      buildingUsage = [
-        { building: 'Home A', currentUsage: 400, maxCapacity: 1000 },
-        { building: 'Home B', currentUsage: 700, maxCapacity: 1200 },
-        { building: 'Home C', currentUsage: 250, maxCapacity: 800 },
-      ];
-    } else if (buildingUsage.length === 0) {
-      buildingUsage = [
-        { building: 'Home A', currentUsage: 400, maxCapacity: 1000 },
-        { building: 'Home B', currentUsage: 700, maxCapacity: 1200 },
-        { building: 'Home C', currentUsage: 250, maxCapacity: 800 },
-      ];
-    }
 
     const buildingStatus = buildings.map((b) => {
-      const devsInBuilding = devices.filter((d) => getBuildingFromLocation(d.location) === b.name);
+      const devsInBuilding = devicesInScope.filter((d) => getBuildingFromLocation(d.location) === b.name);
       const hasWarning = devsInBuilding.some((d) => d.status === 'Warning');
       const hasOffline = devsInBuilding.some((d) => d.status === 'Offline');
       const status = hasOffline ? 'Offline' : hasWarning ? 'Warning' : 'Active';
       return { name: `${b.name} Sensors`, status };
     });
-    if (buildingStatus.length === 0) {
-      buildingStatus.push(
-        { name: 'Home A Sensors', status: 'Active' },
-        { name: 'Home B Sensors', status: 'Warning' },
-        { name: 'Home C Sensors', status: 'Active' },
-      );
-    }
 
-    const allSystemsOk = !devices.some((d) => d.status === 'Offline');
+    const allSystemsOk = !devicesInScope.some((d) => d.status === 'Offline');
     const systemStatus = {
       allSystems: allSystemsOk ? 'Operational' : 'Degraded',
       dataCollection: 'Active',
@@ -155,12 +166,12 @@ router.get('/live-overview', async (req, res) => {
     };
 
     res.json({
-      currentPowerKw: currentPowerKw || 425,
-      currentPowerTrendPercent: todayReadings.length ? trendPercent : 5.2,
+      currentPowerKw,
+      currentPowerTrendPercent: trendPercent,
       averageVoltageV: avgVoltage,
-      voltageStatus: avgVoltage >= 210 && avgVoltage <= 240 ? 'Normal' : avgVoltage < 210 ? 'Low' : 'High',
+      voltageStatus: avgVoltage === 0 ? '—' : avgVoltage >= 210 && avgVoltage <= 240 ? 'Normal' : avgVoltage < 210 ? 'Low' : 'High',
       todaysConsumptionKwh: todaysKwhFinal,
-      todaysConsumptionTrendPercent: todayReadings.length ? trendPercent : 12.3,
+      todaysConsumptionTrendPercent: trendPercent,
       capacityUsagePercent,
       activeAlerts,
       chart: {
@@ -176,6 +187,85 @@ router.get('/live-overview', async (req, res) => {
   }
 });
 
+// GET live hierarchy: houses → rooms → devices with latest power, voltage, current (manager's assigned homes only)
+router.get('/live-hierarchy', async (req, res) => {
+  try {
+    const buildings = await getBuildingsForManager(req);
+    const allowedBuildingNames = new Set(buildings.map((b) => b.name));
+
+    let devices = await Device.find().lean();
+    if (getAllowedBuildingIds(req) !== null) {
+      devices = devices.filter((d) => allowedBuildingNames.has(getBuildingFromLocation(d.location || '')));
+    }
+
+    const deviceIds = devices.map((d) => d._id);
+    if (deviceIds.length === 0) {
+      return res.json({
+        houses: buildings.map((b) => ({ id: b._id.toString(), name: b.name, rooms: [] })),
+      });
+    }
+
+    // Latest reading per device (aggregate: sort by timestamp desc, group by device, first)
+    const latestReadings = await SensorReading.aggregate([
+      { $match: { device: { $in: deviceIds } } },
+      { $sort: { timestamp: -1 } },
+      {
+        $group: {
+          _id: '$device',
+          powerConsumption: { $first: '$powerConsumption' },
+          voltage: { $first: '$voltage' },
+          current: { $first: '$current' },
+          timestamp: { $first: '$timestamp' },
+        },
+      },
+    ]);
+    const readingByDevice = Object.fromEntries(
+      latestReadings.map((r) => [r._id.toString(), r])
+    );
+
+    // Build hierarchy: building -> room -> devices
+    const houseMap = new Map();
+    for (const b of buildings) {
+      houseMap.set(b.name, { id: b._id.toString(), name: b.name, roomMap: new Map() });
+    }
+    for (const d of devices) {
+      const buildingName = getBuildingFromLocation(d.location);
+      const roomName = getRoomFromLocation(d.location);
+      if (!houseMap.has(buildingName)) continue;
+      const house = houseMap.get(buildingName);
+      if (!house.roomMap.has(roomName)) house.roomMap.set(roomName, []);
+      const reading = readingByDevice[d._id.toString()];
+      house.roomMap.get(roomName).push({
+        id: d.id,
+        _id: d._id.toString(),
+        name: d.name || d.id,
+        type: d.type,
+        status: d.status,
+        power: reading ? Math.round(reading.powerConsumption * 10) / 10 : null,
+        voltage: reading && reading.voltage != null ? Math.round(reading.voltage * 10) / 10 : null,
+        current: reading && reading.current != null ? Math.round(reading.current * 10) / 10 : null,
+        timestamp: reading?.timestamp,
+      });
+    }
+
+    const houses = buildings.map((b) => {
+      const house = houseMap.get(b.name) || { id: b._id.toString(), name: b.name, roomMap: new Map() };
+      const rooms = Array.from(house.roomMap.entries())
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([roomName, devs]) => ({
+          name: roomName,
+          devices: devs.sort((a, b) => (a.name || a.id).localeCompare(b.name || b.id)),
+        }));
+      return { id: house.id, name: house.name, rooms };
+    });
+
+    res.json({ houses });
+  } catch (err) {
+    console.error('live-hierarchy', err);
+    res.status(500).json({ message: 'Failed to load live hierarchy' });
+  }
+});
+
 // GET mobile overview – optimized for mobile monitoring (reuses live data)
 router.get('/mobile-overview', async (req, res) => {
   try {
@@ -184,11 +274,11 @@ router.get('/mobile-overview', async (req, res) => {
     startOfToday.setHours(0, 0, 0, 0);
     const last15Min = new Date(now.getTime() - 15 * 60 * 1000);
 
-    const [recentReadings, todayReadings, devices, buildings] = await Promise.all([
+    const buildings = await getBuildingsForManager(req);
+    const [recentReadings, todayReadings, devices] = await Promise.all([
       SensorReading.find({ timestamp: { $gte: last15Min } }).lean(),
       SensorReading.find({ timestamp: { $gte: startOfToday } }).lean(),
       Device.find().lean(),
-      Building.find().lean(),
     ]);
 
     const deviceIdToLocation = Object.fromEntries(devices.map((d) => [d._id.toString(), d.location || '']));
@@ -202,8 +292,7 @@ router.get('/mobile-overview', async (req, res) => {
 
     const todaysKwh = todayReadings.reduce((s, r) => s + r.powerConsumption, 0);
     const currentUsageKwh = todayReadings.length ? Math.round(todaysKwh * 10) / 10 : 12456;
-    const kWh_RATE = 0.23;
-    const todayCost = Math.round(currentUsageKwh * kWh_RATE);
+    const todayCost = costFrwResidential(currentUsageKwh);
     const activeAlerts = devices.filter((d) => d.status === 'Warning' || d.status === 'Offline').length;
     const onlineBuildings = buildings.filter((b) => {
       const devs = devices.filter((d) => getBuildingFromLocation(d.location) === b.name);
@@ -255,20 +344,32 @@ router.get('/mobile-overview', async (req, res) => {
   }
 });
 
-// GET predictive – AI/ML-powered forecasting and anomaly detection
+// GET predictive – forecasting for manager's assigned homes only
 router.get('/predictive', async (req, res) => {
   try {
+    const buildings = await getBuildingsForManager(req);
+    const allowedBuildingNames = new Set(buildings.map((b) => b.name));
+    let allowedDeviceIds = null;
+    const allDevices = await Device.find().lean();
+    if (getAllowedBuildingIds(req) !== null) {
+      const devicesInScope = allDevices.filter((d) => allowedBuildingNames.has(getBuildingFromLocation(d.location || '')));
+      allowedDeviceIds = devicesInScope.map((d) => d._id);
+    }
+    const deviceFilter = allowedDeviceIds !== null && allowedDeviceIds.length > 0
+      ? { device: { $in: allowedDeviceIds } }
+      : allowedDeviceIds !== null && allowedDeviceIds.length === 0
+        ? { device: { $in: [] } }
+        : {};
+
     const now = new Date();
-    // Get forecast period from query (default 7 days)
-    const forecastDays = parseInt(req.query.days) || 7;
-    
-    // For longer forecasts, we need more historical data
+    const forecastDays = Math.min(30, Math.max(1, parseInt(req.query.days, 10) || 7));
     const historicalDays = Math.max(30, forecastDays * 2);
     const daysBack = new Date(now.getTime() - historicalDays * 24 * 60 * 60 * 1000);
-    
-    // Aggregate daily totals from sensor readings
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const aggMatch = { timestamp: { $gte: daysBack }, ...deviceFilter };
     const agg = await SensorReading.aggregate([
-      { $match: { timestamp: { $gte: daysBack } } },
+      { $match: aggMatch },
       {
         $group: {
           _id: { $dateToString: { format: '%Y-%m-%d', date: '$timestamp' } },
@@ -292,59 +393,7 @@ router.get('/predictive', async (req, res) => {
       ? historicalData.reduce((s, d) => s + (d.value || 0), 0) / historicalData.length
       : 12000;
 
-    // If we have insufficient data, fill with demo values
-    if (historicalData.length < Math.min(7, historicalDays)) {
-      // Create a map of existing dates for quick lookup
-      const existingDates = new Set(
-        historicalData.map((d) => {
-          const dDate = new Date(d.timestamp);
-          return dDate.toISOString().slice(0, 10);
-        })
-      );
-
-      // Fill missing days with estimated values
-      const demoData = [];
-      for (let i = historicalDays - 1; i >= 0; i--) {
-        const date = new Date(now);
-        date.setDate(date.getDate() - i);
-        const dateStr = date.toISOString().slice(0, 10);
-        
-        if (!existingDates.has(dateStr)) {
-          // Generate realistic daily consumption with some variation
-          const dayOfWeek = date.getDay();
-          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-          const baseMultiplier = isWeekend ? 0.7 : 1.0;
-          const variation = 0.85 + Math.random() * 0.3;
-          const dailyValue = avgDaily * baseMultiplier * variation;
-          
-          demoData.push({
-            timestamp: date,
-            value: Math.max(100, dailyValue), // Ensure minimum value
-            totalKwh: Math.max(100, dailyValue),
-            date: dateStr,
-          });
-        }
-      }
-      
-      // Merge and sort
-      historicalData = [...historicalData, ...demoData];
-      historicalData.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-    }
-
-    // Ensure we have at least some data
-    if (historicalData.length === 0) {
-      // Generate minimum demo data
-      for (let i = 29; i >= 0; i--) {
-        const date = new Date(now);
-        date.setDate(date.getDate() - i);
-        historicalData.push({
-          timestamp: date,
-          value: 10000 + Math.random() * 5000,
-          totalKwh: 10000 + Math.random() * 5000,
-          date: date.toISOString().slice(0, 10),
-        });
-      }
-    }
+    // Use only real data; ML service will handle insufficient data with defaults
 
     // Generate predictions using ML service
     const predictions = generatePredictions(historicalData, {
@@ -371,17 +420,37 @@ router.get('/predictive', async (req, res) => {
       predictions.tomorrowsForecastKwh = predictions.forecastSeries.values[0] || avgValue;
     }
 
-    // Return results
+    // Last 7 days actual (for combined chart: past + forecast)
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const byDate = {};
+    historicalData.forEach((d) => { byDate[d.date] = d.value; });
+    const recentActual = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().slice(0, 10);
+      const kwh = byDate[dateStr] || 0;
+      recentActual.push({
+        day: `${dayNames[d.getDay()]} ${d.getDate()}`,
+        date: dateStr,
+        usageKwh: Math.round(kwh * 10) / 10,
+      });
+    }
+
+    const tomorrowsKwh = (predictions.forecastSeries?.values?.[0]) ?? predictions.tomorrowsForecastKwh ?? 0;
+    const totalForecastKwh = (predictions.forecastSeries?.values || []).reduce((s, v) => s + (v || 0), 0);
+
     res.json({
-      tomorrowsForecastKwh: predictions.tomorrowsForecastKwh || 10000,
-      forecastChangePercent: predictions.forecastChangePercent || 0,
+      tomorrowsForecastKwh: tomorrowsKwh,
+      totalForecastKwh: Math.round(totalForecastKwh * 10) / 10,
+      forecastChangePercent: predictions.forecastChangePercent ?? 0,
       predictionAccuracyLabel: predictions.predictionAccuracyLabel || 'Medium',
-      predictionAccuracyPercent: predictions.predictionAccuracyPercent || 85,
-      weeklyAnomalies: predictions.weeklyAnomalies || 0,
-      activeAnomalies: predictions.activeAnomalies || 0,
+      predictionAccuracyPercent: predictions.predictionAccuracyPercent ?? 0,
+      weeklyAnomalies: predictions.weeklyAnomalies ?? 0,
+      activeAnomalies: predictions.activeAnomalies ?? 0,
       nextPeakDay: predictions.nextPeakDay || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
       forecastSeries: predictions.forecastSeries,
-      // Additional ML insights
+      recentActual,
       trend: predictions.trend || { slope: 0, direction: 'stable' },
       anomalies: (predictions.anomalies || []).slice(0, 10),
       modelMetrics: predictions.modelMetrics || { mae: 0, stdDev: 0 },
@@ -392,14 +461,27 @@ router.get('/predictive', async (req, res) => {
   }
 });
 
-// GET analytics-trends – for Manager Analytics & Trends page
+// GET analytics-trends – for Manager Analytics & Trends page (scoped to manager's assigned buildings)
 router.get('/analytics-trends', async (req, res) => {
   try {
+    const buildings = await getBuildingsForManager(req);
+    const allowedBuildingNames = new Set(buildings.map((b) => b.name));
+    let allowedDeviceIds = null;
+    const allDevices = await Device.find().lean();
+    if (getAllowedBuildingIds(req) !== null) {
+      const devicesInScope = allDevices.filter((d) => allowedBuildingNames.has(getBuildingFromLocation(d.location || '')));
+      allowedDeviceIds = devicesInScope.map((d) => d._id);
+    }
+    const deviceFilter = allowedDeviceIds !== null && allowedDeviceIds.length > 0
+      ? { device: { $in: allowedDeviceIds } }
+      : allowedDeviceIds !== null && allowedDeviceIds.length === 0
+        ? { device: { $in: [] } }
+        : {};
+
     const now = new Date();
-    // Get date range from query parameter (default: 7d)
     const dateRange = req.query.range || '7d';
     let daysBack, periodStart, comparisonStart;
-    
+
     if (dateRange === '1d') {
       daysBack = 1;
       periodStart = new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000);
@@ -425,36 +507,35 @@ router.get('/analytics-trends', async (req, res) => {
       periodStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       comparisonStart = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
     }
-    
-    const days30 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const kWh_RATE = 0.23;
 
-    // Fetch readings for the selected period and comparison period
-    const readings = await SensorReading.find({ timestamp: { $gte: periodStart } }).populate('device', 'location').lean();
-    const periodReadings = readings.filter((r) => new Date(r.timestamp) >= periodStart);
-    const comparisonReadings = await SensorReading.find({ 
-      timestamp: { $gte: comparisonStart, $lt: periodStart } 
-    }).populate('device', 'location').lean();
+    const [readingsRaw, comparisonRaw] = await Promise.all([
+      SensorReading.find({ ...deviceFilter, timestamp: { $gte: periodStart } }).populate('device', 'location').lean(),
+      SensorReading.find({ ...deviceFilter, timestamp: { $gte: comparisonStart, $lt: periodStart } }).populate('device', 'location').lean(),
+    ]);
+    const periodReadings = readingsRaw.filter((r) => new Date(r.timestamp) >= periodStart);
+    const comparisonReadings = comparisonRaw;
 
     const byBuilding = {};
-    readings.forEach((r) => {
+    periodReadings.forEach((r) => {
       const loc = r.device?.location || '';
       const b = getBuildingFromLocation(loc);
-      if (!byBuilding[b]) byBuilding[b] = [];
-      byBuilding[b].push(r.powerConsumption);
+      if (!allowedBuildingNames.size || allowedBuildingNames.has(b)) {
+        if (!byBuilding[b]) byBuilding[b] = [];
+        byBuilding[b].push(r.powerConsumption);
+      }
     });
 
     const totalKwhPeriod = periodReadings.reduce((s, r) => s + (r.powerConsumption || 0), 0);
     const totalKwhComparison = comparisonReadings.reduce((s, r) => s + (r.powerConsumption || 0), 0);
-    const totalConsumptionKwh = periodReadings.length ? Math.round(totalKwhPeriod * 10) / 10 : 83150;
+    const totalConsumptionKwh = Math.round(totalKwhPeriod * 10) / 10;
     const totalConsumptionChangePercent = totalKwhComparison > 0
       ? Math.round(((totalKwhPeriod - totalKwhComparison) / totalKwhComparison) * 1000) / 10
-      : -8.3;
+      : 0;
 
-    const avgDailyKwh = periodReadings.length ? Math.round((totalKwhPeriod / daysBack) * 10) / 10 : 11878;
-    const avgDailyChangePercent = totalKwhComparison > 0
+    const avgDailyKwh = daysBack > 0 ? Math.round((totalKwhPeriod / daysBack) * 10) / 10 : 0;
+    const avgDailyChangePercent = totalKwhComparison > 0 && daysBack > 0
       ? Math.round(((totalKwhPeriod / daysBack - totalKwhComparison / daysBack) / (totalKwhComparison / daysBack)) * 1000) / 10
-      : 3.2;
+      : 0;
 
     const byHour = {};
     periodReadings.forEach((r) => {
@@ -469,30 +550,25 @@ router.get('/analytics-trends', async (req, res) => {
         peakHour = parseInt(h, 10);
       }
     });
-    peakKw = periodReadings.length ? Math.round(peakKw * 10) / 10 : 523;
-    if (!periodReadings.length) peakHour = 14;
+    peakKw = Math.round(peakKw * 10) / 10;
 
-    // Generate trend data based on date range
+    // Generate trend data from real readings only (no fake values)
     let weeklyTrend = [];
-    const hasEnoughData = periodReadings.length > 50 && totalKwhPeriod > 100;
-    
     if (dateRange === '1d') {
-      // Hourly data for 1 day
       const byHour = {};
       periodReadings.forEach((r) => {
         const h = new Date(r.timestamp).getHours();
         byHour[h] = (byHour[h] || 0) + (r.powerConsumption || 0);
       });
       weeklyTrend = Array.from({ length: 24 }, (_, i) => {
-        const kwh = hasEnoughData ? (byHour[i] || 0) : (800 + Math.random() * 400);
+        const kwh = byHour[i] || 0;
         return {
           day: `${i}:00`,
           usageKwh: Math.round(kwh * 10) / 10,
-          costDollars: Math.round(kwh * kWh_RATE),
+          costFrw: costFrwResidential(kwh),
         };
       });
     } else if (dateRange === '7d' || dateRange === '14d') {
-      // Daily data
       const byDay = {};
       periodReadings.forEach((r) => {
         const d = new Date(r.timestamp);
@@ -508,16 +584,15 @@ router.get('/analytics-trends', async (req, res) => {
       }
       weeklyTrend = dates.map((date) => {
         const dayKey = date.toISOString().slice(0, 10);
-        const kwh = hasEnoughData ? (byDay[dayKey] || 0) : (8000 + Math.random() * 4000);
+        const kwh = byDay[dayKey] || 0;
         const dayName = dayNames[date.getDay()];
         return {
           day: `${dayName} ${date.getDate()}`,
           usageKwh: Math.round(kwh * 10) / 10,
-          costDollars: Math.round(kwh * kWh_RATE),
+          costFrw: costFrwResidential(kwh),
         };
       });
     } else if (dateRange === '30d') {
-      // Weekly data (4-5 weeks)
       const byWeek = {};
       periodReadings.forEach((r) => {
         const d = new Date(r.timestamp);
@@ -534,15 +609,14 @@ router.get('/analytics-trends', async (req, res) => {
       }
       weeklyTrend = weeks.map((weekStart) => {
         const weekKey = weekStart.toISOString().slice(0, 10);
-        const kwh = hasEnoughData ? (byWeek[weekKey] || 0) : (50000 + Math.random() * 20000);
+        const kwh = byWeek[weekKey] || 0;
         return {
           day: `Week ${weeks.length - weeks.indexOf(weekStart)}`,
           usageKwh: Math.round(kwh * 10) / 10,
-          costDollars: Math.round(kwh * kWh_RATE),
+          costFrw: costFrwResidential(kwh),
         };
       });
     } else if (dateRange === '1y') {
-      // Monthly data
       const byMonth = {};
       periodReadings.forEach((r) => {
         const d = new Date(r.timestamp);
@@ -558,73 +632,103 @@ router.get('/analytics-trends', async (req, res) => {
       }
       weeklyTrend = months.map((date) => {
         const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        const kwh = hasEnoughData ? (byMonth[monthKey] || 0) : (250000 + Math.random() * 100000);
+        const kwh = byMonth[monthKey] || 0;
         return {
           day: monthNames[date.getMonth()],
           usageKwh: Math.round(kwh * 10) / 10,
-          costDollars: Math.round(kwh * kWh_RATE),
+          costFrw: costFrwResidential(kwh),
         };
       });
     } else {
-      // Default: daily for 7 days
       const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-      const demoWeekly = [9500, 11200, 10500, 11800, 14000, 11000, 9150];
-      const byDayOfWeek = {};
+      const byDay = {};
       periodReadings.forEach((r) => {
         const d = new Date(r.timestamp);
-        const day = d.getDay();
-        byDayOfWeek[day] = (byDayOfWeek[day] || 0) + (r.powerConsumption || 0);
+        const dayKey = d.toISOString().slice(0, 10);
+        byDay[dayKey] = (byDay[dayKey] || 0) + (r.powerConsumption || 0);
       });
-      weeklyTrend = [1, 2, 3, 4, 5, 6, 0].map((d, i) => {
-        const kwh = hasEnoughData ? (byDayOfWeek[d] || 0) : demoWeekly[i];
+      const dates = [];
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date(now);
+        date.setDate(date.getDate() - i);
+        dates.push(date);
+      }
+      weeklyTrend = dates.map((date) => {
+        const dayKey = date.toISOString().slice(0, 10);
+        const kwh = byDay[dayKey] || 0;
         return {
-          day: dayNames[d],
+          day: `${dayNames[date.getDay()]} ${date.getDate()}`,
           usageKwh: Math.round(kwh * 10) / 10,
-          costDollars: Math.round(kwh * kWh_RATE),
+          costFrw: costFrwResidential(kwh),
         };
       });
     }
 
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-    const monthlyData = months.map((m, i) => {
-      const base = 320000 + i * 8000 + Math.floor(Math.random() * 20000);
-      const actual = base;
-      const predicted = base - 3000 + Math.floor(Math.random() * 6000);
-      return { month: m, actual, predicted };
+    // Monthly actual vs predicted: use real monthly totals for actual; predicted = simple extrapolation or same as actual if no forecast
+    const byMonthReal = {};
+    periodReadings.forEach((r) => {
+      const d = new Date(r.timestamp);
+      const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      byMonthReal[monthKey] = (byMonthReal[monthKey] || 0) + (r.powerConsumption || 0);
+    });
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+    const monthlyData = [];
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(now);
+      date.setMonth(date.getMonth() - i);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const actual = byMonthReal[monthKey] || 0;
+      monthlyData.push({
+        month: monthNames[date.getMonth()],
+        actual: Math.round(actual * 10) / 10,
+        predicted: Math.round(actual * 10) / 10,
+      });
+    }
+
+    // Energy distribution: optional placeholder (we don't have category per device); hide or show as sample
+    const energyDistribution = [
+      { category: 'Consumption', percent: 100, color: '#3b82f6' },
+    ];
+
+    const h12 = peakHour === 0 ? 12 : (peakHour > 12 ? peakHour - 12 : peakHour);
+    const peakTimestamp = periodReadings.length && peakKw > 0
+      ? `${h12}:00 ${peakHour >= 12 ? 'PM' : 'AM'}`
+      : '';
+
+    const efficiencyScore = totalKwhPeriod > 0 && periodReadings.length > 20
+      ? Math.min(100, Math.max(0, Math.round(70 + (totalConsumptionChangePercent <= 0 ? 15 : -5))))
+      : null;
+    const efficiencyChange = efficiencyScore != null ? (totalConsumptionChangePercent <= 0 ? 5 : -2) : null;
+
+    const buildingComparison = buildings.map((b) => {
+      const arr = byBuilding[b.name] || [];
+      const total = arr.reduce((a, x) => a + x, 0);
+      return {
+        building: b.name,
+        avgDailyKwh: Math.round((total / Math.max(daysBack, 1)) * 10) / 10,
+      };
     });
 
-    const energyDistribution = [
-      { category: 'HVAC', percent: 35, color: '#3b82f6' },
-      { category: 'Lighting', percent: 25, color: '#22c55e' },
-      { category: 'Equipment', percent: 20, color: '#f59e0b' },
-      { category: 'Computing', percent: 15, color: '#8b5cf6' },
-      { category: 'Other', percent: 5, color: '#6b7280' },
-    ];
-
-    const keyInsights = [
-      { title: 'Peak Hour Optimization', recommendation: 'Consider shifting non-critical loads from 2-4 PM to reduce peak demand charges.', benefit: 'Potential savings: $450/month', border: 'green' },
-      { title: 'Weekend Usage Pattern', recommendation: 'Weekend consumption is 30% lower. Review HVAC schedules for further optimization.', label: 'Efficiency opportunity identified', border: 'blue' },
-      { title: 'HVAC Dominance', recommendation: 'HVAC represents 35% of total consumption. Temperature setpoint adjustment recommended.', benefit: 'Potential savings: $320/month', border: 'green' },
-      { title: 'Consumption Trend', recommendation: `Overall consumption decreased ${Math.abs(totalConsumptionChangePercent)}% this week compared to last week.`, comment: 'Great progress!', border: 'green' },
-    ];
-
-    const efficiencyScore = 87;
-    const efficiencyChange = 5;
-    const peakDay = 'Thu';
-    const h12 = peakHour === 0 ? 12 : (peakHour > 12 ? peakHour - 12 : peakHour);
-    const peakTimestamp = `${peakDay} ${h12}:45 ${peakHour >= 12 ? 'PM' : 'AM'}`;
-
-    const buildingComparison = Object.entries(byBuilding).map(([name, arr]) => ({
-      building: name,
-      avgDailyKwh: arr.length ? Math.round((arr.reduce((a, b) => a + b, 0) / 30) * 10) / 10 : 0,
-    }));
-    if (buildingComparison.length === 0) {
-      buildingComparison.push(
-        { building: 'Home A', avgDailyKwh: 10200 },
-        { building: 'Home B', avgDailyKwh: 13400 },
-        { building: 'Home C', avgDailyKwh: 9100 },
-      );
+    const keyInsights = [];
+    if (periodReadings.length > 0) {
+      keyInsights.push({
+        title: 'Consumption trend',
+        recommendation: totalConsumptionChangePercent < 0
+          ? `Usage is down ${Math.abs(totalConsumptionChangePercent)}% vs previous period.`
+          : totalConsumptionChangePercent > 0
+            ? `Usage is up ${totalConsumptionChangePercent}% vs previous period.`
+            : 'Usage is flat vs previous period.',
+        comment: totalConsumptionChangePercent <= 0 ? 'Good progress.' : 'Review high-use devices.',
+        border: 'green',
+      });
     }
+    keyInsights.push({
+      title: 'Your homes',
+      recommendation: buildings.length
+        ? `Data shown is for your ${buildings.length} assigned home${buildings.length !== 1 ? 's' : ''} only.`
+        : 'No homes assigned. Ask an admin to assign homes in User Management.',
+      border: 'blue',
+    });
 
     res.json({
       totalConsumptionKwh,
@@ -640,7 +744,7 @@ router.get('/analytics-trends', async (req, res) => {
       energyDistribution,
       keyInsights,
       buildingComparison,
-      trendVsLastMonthPercent: -8.3,
+      trendVsLastMonthPercent: totalConsumptionChangePercent,
       highLoadHoursThisWeek: 36,
     });
   } catch (err) {
@@ -655,8 +759,8 @@ router.get('/building-zones', async (req, res) => {
     const now = new Date();
     const last15Min = new Date(now.getTime() - 15 * 60 * 1000);
 
-    const [buildings, devices, recentReadings] = await Promise.all([
-      Building.find().lean(),
+    const buildings = await getBuildingsForManager(req);
+    const [devices, recentReadings] = await Promise.all([
       Device.find().lean(),
       SensorReading.find({ timestamp: { $gte: last15Min } }).lean(),
     ]);
@@ -730,15 +834,14 @@ router.get('/cost-management', async (req, res) => {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-    const kWh_RATE = 0.23;
-    const DEMAND_RATE = 12.5;
-    const MONTHLY_BUDGET = 50000;
+    const DEMAND_RATE_FRW = 5000;
+    const MONTHLY_BUDGET_FRW = 200000;
     const rangeParam = (req.query.range || '12m').toLowerCase();
     const is3Year = rangeParam === '3y' || rangeParam === '36';
     const timeRange = is3Year ? '3y' : '12m';
 
-    const [buildings, devices, readingsThisMonth, readingsLastMonth] = await Promise.all([
-      Building.find().lean(),
+    const buildings = await getBuildingsForManager(req);
+    const [devices, readingsThisMonth, readingsLastMonth] = await Promise.all([
       Device.find().lean(),
       SensorReading.find({ timestamp: { $gte: startOfMonth } }).lean(),
       SensorReading.find({ timestamp: { $gte: startOfLastMonth, $lt: startOfMonth } }).lean(),
@@ -763,14 +866,14 @@ router.get('/cost-management', async (req, res) => {
     const daysInMonth = now.getDate();
     const daysInLastMonth = endOfLastMonth.getDate();
     const projectedKwh = daysInMonth > 0 ? (totalKwhThisMonth / daysInMonth) * daysInLastMonth : totalKwhThisMonth;
-    const totalCost = Math.round(totalKwhThisMonth * kWh_RATE);
-    const projectedCost = Math.round(projectedKwh * kWh_RATE);
-    const budgetVariance = MONTHLY_BUDGET > 0 ? Math.round(((projectedCost - MONTHLY_BUDGET) / MONTHLY_BUDGET) * 1000) / 10 : 0;
+    const totalCost = costFrwResidential(totalKwhThisMonth);
+    const projectedCost = costFrwResidential(projectedKwh);
+    const budgetVariance = MONTHLY_BUDGET_FRW > 0 ? Math.round(((projectedCost - MONTHLY_BUDGET_FRW) / MONTHLY_BUDGET_FRW) * 1000) / 10 : 0;
 
     const peakDemandKw = readingsThisMonth.length
       ? Math.max(...readingsThisMonth.map((r) => r.powerConsumption), 0)
       : 523;
-    const peakDemandCharges = Math.round(peakDemandKw * DEMAND_RATE);
+    const peakDemandCharges = Math.round(peakDemandKw * DEMAND_RATE_FRW);
 
     const savingsFromOptimization = Math.round(totalCost * 0.067);
 
@@ -778,11 +881,11 @@ router.get('/cost-management', async (req, res) => {
       const usage = byBuildingThisMonth[b.name] || { kwh: 0, peakKw: 0 };
       const daysElapsed = daysInMonth;
       const projectedKwhBuilding = daysElapsed > 0 ? (usage.kwh / daysElapsed) * daysInLastMonth : usage.kwh;
-      const buildingCost = Math.round(projectedKwhBuilding * kWh_RATE);
-      const buildingBudget = MONTHLY_BUDGET * (b.totalDevices || 10) / (buildings.reduce((s, x) => s + (x.totalDevices || 10), 0) || 1);
+      const buildingCost = costFrwResidential(projectedKwhBuilding);
+      const buildingBudget = MONTHLY_BUDGET_FRW * (b.totalDevices || 10) / (buildings.reduce((s, x) => s + (x.totalDevices || 10), 0) || 1);
       const buildingVariance = buildingBudget > 0 ? Math.round(((buildingCost - buildingBudget) / buildingBudget) * 1000) / 10 : 0;
       
-      const demoCosts = { 'Home A': 18200, 'Home B': 21500, 'Home C': 9020 };
+      const demoCosts = { 'Home A': 55000, 'Home B': 65000, 'Home C': 27000 };
       const demoVariances = { 'Home A': -4.1, 'Home B': -7.3, 'Home C': -8.0 };
       
       return {
@@ -826,8 +929,8 @@ router.get('/cost-management', async (req, res) => {
       let monthCost = 0;
       
       if (monthInfo && monthInfo.kwh > 0) {
-        // Calculate cost from actual readings
-        monthCost = Math.round(monthInfo.kwh * kWh_RATE);
+        // Calculate cost from actual readings (Rwanda residential tariff)
+        monthCost = costFrwResidential(monthInfo.kwh);
       } else if (i === 0) {
         // Current month - use readingsThisMonth if available, or project
         if (readingsThisMonth.length > 0) {
@@ -835,15 +938,15 @@ router.get('/cost-management', async (req, res) => {
           const avgDailyKwh = totalKwhThisMonth / daysElapsed;
           const daysInMonth = monthEnd.getDate();
           const projectedKwh = avgDailyKwh * daysInMonth;
-          monthCost = Math.round(projectedKwh * kWh_RATE);
+          monthCost = costFrwResidential(projectedKwh);
         } else {
           // No data at all - use current month's totalCost if available
-          monthCost = totalCost || Math.round(MONTHLY_BUDGET * 0.9);
+          monthCost = totalCost || Math.round(MONTHLY_BUDGET_FRW * 0.9);
         }
       } else {
-        // Past months with no data - use baseline estimate with some variation
+        // Past months with no data - use baseline estimate with some variation (Frw)
         const variation = (i % 6) * 0.02;
-        monthCost = Math.round(MONTHLY_BUDGET * (0.85 + variation));
+        monthCost = Math.round(MONTHLY_BUDGET_FRW * (0.85 + variation));
       }
       
       // Format month label differently for 3-year view (short: "Mar 2024")
@@ -859,7 +962,7 @@ router.get('/cost-management', async (req, res) => {
 
     res.json({
       month: `${monthNames[now.getMonth()]} ${now.getFullYear()}`,
-      totalCost: totalCost || 48720,
+      totalCost: totalCost || 145000,
       projectedCost,
       budgetVariance: budgetVariance || -6.4,
       peakDemandCharges: peakDemandCharges || 8340,
@@ -956,11 +1059,10 @@ router.get('/reports/export', async (req, res) => {
     const now = new Date();
     const days30 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const kWh_RATE = 0.23;
 
-    const [readings, buildings, devices] = await Promise.all([
+    const buildings = await getBuildingsForManager(req);
+    const [readings, devices] = await Promise.all([
       SensorReading.find({ timestamp: { $gte: days30 } }).populate('device', 'location').lean(),
-      Building.find().lean(),
       Device.find().lean(),
     ]);
 
@@ -981,7 +1083,7 @@ router.get('/reports/export', async (req, res) => {
     });
 
     const totalKwh = readings.reduce((s, r) => s + r.powerConsumption, 0);
-    const totalCost = Math.round(totalKwh * kWh_RATE);
+    const totalCost = costFrwResidential(totalKwh);
 
     const rows = [
       ['Report', name || 'Energy Report', period || 'Last 30 Days'],
@@ -989,14 +1091,14 @@ router.get('/reports/export', async (req, res) => {
       [],
       ['Summary', 'Value', 'Unit'],
       ['Total Consumption', Math.round(totalKwh * 10) / 10, 'kWh'],
-      ['Estimated Cost', totalCost, 'USD'],
+      ['Estimated Cost (Rwanda residential tariff)', totalCost, 'Frw'],
       ['Readings Count', readings.length, ''],
       [],
-      ['By Home', 'Consumption (kWh)', 'Cost (USD)', 'Readings'],
+      ['By Home', 'Consumption (kWh)', 'Cost (Frw)', 'Readings'],
       ...Object.entries(byBuilding).map(([b, v]) => [
         b,
         Math.round(v.kwh * 10) / 10,
-        Math.round(v.kwh * kWh_RATE),
+        costFrwResidential(v.kwh),
         v.count,
       ]),
     ];

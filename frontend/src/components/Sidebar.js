@@ -17,6 +17,7 @@ function Sidebar() {
         <li><NavLink to="/building-configuration">Building Configuration</NavLink></li>
         <li><NavLink to="/system-configuration">System Configuration</NavLink></li>
         <li><NavLink to="/audit-log">Audit Log</NavLink></li>
+        <li><NavLink to="/sensor-simulator">Sensor Simulator</NavLink></li>
       </ul>
     </div>
   );

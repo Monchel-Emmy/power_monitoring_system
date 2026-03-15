@@ -3,11 +3,249 @@
   margin: 0 auto;
 }
 
-.predictive-chart-card {
-  background-color: #ffffff;
-  border-radius: 18px;
-  padding: 18px 20px 22px;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+/* Shared predict layout (match Analytics page) */
+.predict-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.predict-section-header h1 {
+  margin: 0;
+  font-size: 1.6rem;
+  color: #111827;
+}
+
+.manager-predictive-page .section-desc {
+  margin: 6px 0 0;
+  color: #6b7280;
+  font-size: 1rem;
+}
+
+.predict-period-select {
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  font-size: 0.95rem;
+  color: #374151;
+  cursor: pointer;
+}
+
+.predict-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 768px) {
+  .predict-kpi-row { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 480px) {
+  .predict-kpi-row { grid-template-columns: 1fr; }
+}
+
+.predict-kpi {
+  background: #fff;
+  border-radius: 14px;
+  padding: 18px 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.predict-kpi-label {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.predict-kpi-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.predict-kpi-value.down { color: #16a34a; }
+.predict-kpi-value.up { color: #dc2626; }
+
+.predict-chart-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 22px 24px 28px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+  margin-bottom: 24px;
+}
+
+.predict-combined-card { margin-bottom: 24px; }
+
+.predict-chart-title {
+  margin: 0 0 4px;
+  font-size: 1.15rem;
+  color: #111827;
+}
+
+.predict-chart-desc {
+  margin: 0 0 20px;
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.predict-chart-placeholder {
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+.predict-chart-wrap { display: flex; flex-direction: column; gap: 4px; }
+
+.predict-chart-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.predict-y-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 12px 8px 32px 0;
+  font-size: 0.75rem;
+  color: #6b7280;
+  min-width: 40px;
+}
+
+.predict-y-tick { text-align: right; }
+
+.chart-svg-tooltip-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.chart-hover-dot {
+  cursor: pointer;
+}
+
+.chart-tooltip {
+  position: absolute;
+  pointer-events: none;
+  margin-bottom: 8px;
+  padding: 10px 14px;
+  background: #1f2937;
+  color: #fff;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+  white-space: nowrap;
+  z-index: 10;
+}
+
+.chart-tooltip-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.chart-tooltip-value {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.chart-tooltip-sub {
+  font-size: 0.8rem;
+  opacity: 0.9;
+  margin-top: 2px;
+}
+
+.predict-svg {
+  width: 100%;
+  height: auto;
+  max-height: 240px;
+}
+
+.predict-grid {
+  stroke: #e5e7eb;
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.predict-x-axis {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0 0;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.predict-x-tick {
+  flex: 1;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.predict-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.predict-legend-dual { gap: 24px; }
+
+.predict-legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  display: inline-block;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.predict-in-short-card {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 14px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+}
+
+.predict-in-short-title {
+  margin: 0 0 10px;
+  font-size: 1.05rem;
+  color: #14532d;
+}
+
+.predict-in-short-text {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #14532d;
+}
+
+.predict-anomalies-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 22px 24px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+}
+
+.predict-anomalies-list {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 0.95rem;
+  color: #374151;
+  line-height: 1.8;
 }
 
 .forecast-period-selector {

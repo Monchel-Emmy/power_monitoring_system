@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import Modal from '../components/Modal';
 import './ManagerBuildingZonesPage.css';
 
-import { API_BASE } from '../config';
+import { API_BASE, getAuthHeaders } from '../config';
 
 const defaultNewBuilding = {
   name: '',
@@ -23,7 +23,7 @@ const ManagerBuildingZonesPage = () => {
 
   const fetchData = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/manager/building-zones`);
+      const res = await fetch(`${API_BASE}/api/manager/building-zones`, { headers: getAuthHeaders() });
       if (res.ok) {
         const json = await res.json();
         setData(json);

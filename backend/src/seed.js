@@ -10,6 +10,19 @@ const Alert = require('./models/Alert');
 
 dotenv.config();
 
+/**
+ * After running: npm run seed
+ *
+ * Test users (password for all: password123):
+ * - admin / admin@example.com       → Admin, sees all homes
+ * - alice.smith / alice.smith@...   → Admin, assigned Home A, Home B
+ * - bob.johnson / bob.johnson@...   → Manager, assigned Home B only (use for Live Power / hierarchy test)
+ * - sarah.manager / sarah.manager@... → Manager, assigned Home A + Home C
+ * - charlie.brown / charlie.brown@... → User, assigned Home A
+ *
+ * Homes: Home A, Home B, Home C. Devices have names like Fridge, TV, AC, Lighting in Room 1, Room 2, Kitchen.
+ */
+
 const DB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/powermonitoring';
 
 const BUILDING_NAMES = ['Home A', 'Home B', 'Home C'];
@@ -50,6 +63,14 @@ const seedDB = async () => {
     const hashed = await bcrypt.hash('password123', 10);
     const users = [
       {
+        username: 'admin',
+        password: hashed,
+        role: 'admin',
+        email: 'admin@example.com',
+        status: 'Active',
+        buildings: [],
+      },
+      {
         username: 'alice.smith',
         password: hashed,
         role: 'admin',
@@ -63,7 +84,15 @@ const seedDB = async () => {
         role: 'manager',
         email: 'bob.johnson@example.com',
         status: 'Active',
-        buildings: [buildingC._id],
+        buildings: [buildingB._id],
+      },
+      {
+        username: 'sarah.manager',
+        password: hashed,
+        role: 'manager',
+        email: 'sarah.manager@example.com',
+        status: 'Active',
+        buildings: [buildingA._id, buildingC._id],
       },
       {
         username: 'charlie.brown',
@@ -88,11 +117,31 @@ const seedDB = async () => {
     }
     await Device.deleteMany({});
     const devicesData = [
-      { id: 'D001', name: 'Power Meter A1', type: 'Smart Meter', location: 'Home A - Room 1', lastSync: '2 minutes ago', dataRate: '1.2 MB/s', battery: '95%', status: 'Online' },
-      { id: 'D002', name: 'Power Meter A2', type: 'Smart Meter', location: 'Home A - Room 2', lastSync: '1 minute ago', dataRate: '1.1 MB/s', battery: '88%', status: 'Online' },
-      { id: 'D003', name: 'Sensor B1', type: 'IoT Sensor', location: 'Home B - Room 1', lastSync: '15 minutes ago', dataRate: '0.8 MB/s', battery: '45%', status: 'Warning' },
-      { id: 'D004', name: 'Smart Plug C1', type: 'Smart Meter', location: 'Home C - Room 1', lastSync: '3 minutes ago', dataRate: '1.3 MB/s', battery: '92%', status: 'Online' },
-      { id: 'D005', name: 'Sensor A3', type: 'IoT Sensor', location: 'Home A - Room 3', lastSync: '2 hours ago', dataRate: 'N/A', battery: '12%', status: 'Offline' },
+      // Home A – Room 1
+      { id: 'D001', name: 'Fridge', type: 'Smart Meter', location: 'Home A - Room 1', lastSync: '2 min ago', dataRate: '1.2 MB/s', battery: '95%', status: 'Online' },
+      { id: 'D002', name: 'TV', type: 'Smart Meter', location: 'Home A - Room 1', lastSync: '1 min ago', dataRate: '1.1 MB/s', battery: '88%', status: 'Online' },
+      { id: 'D003', name: 'AC', type: 'IoT Sensor', location: 'Home A - Room 1', lastSync: '5 min ago', dataRate: '0.9 MB/s', battery: '92%', status: 'Online' },
+      // Home A – Room 2
+      { id: 'D004', name: 'Lighting', type: 'Smart Meter', location: 'Home A - Room 2', lastSync: '1 min ago', dataRate: '0.5 MB/s', battery: '100%', status: 'Online' },
+      { id: 'D005', name: 'Laptop', type: 'Smart Meter', location: 'Home A - Room 2', lastSync: '3 min ago', dataRate: '1.0 MB/s', battery: '78%', status: 'Online' },
+      // Home A – Room 3
+      { id: 'D006', name: 'Washing Machine', type: 'IoT Sensor', location: 'Home A - Room 3', lastSync: '2 hours ago', dataRate: 'N/A', battery: '12%', status: 'Offline' },
+      // Home B – Room 1
+      { id: 'D007', name: 'Fridge', type: 'Smart Meter', location: 'Home B - Room 1', lastSync: '2 min ago', dataRate: '1.2 MB/s', battery: '90%', status: 'Online' },
+      { id: 'D008', name: 'TV', type: 'Smart Meter', location: 'Home B - Room 1', lastSync: '1 min ago', dataRate: '1.1 MB/s', battery: '85%', status: 'Online' },
+      { id: 'D009', name: 'Router', type: 'IoT Sensor', location: 'Home B - Room 1', lastSync: '15 min ago', dataRate: '0.8 MB/s', battery: '45%', status: 'Warning' },
+      // Home B – Room 2
+      { id: 'D010', name: 'AC', type: 'Smart Meter', location: 'Home B - Room 2', lastSync: '3 min ago', dataRate: '1.3 MB/s', battery: '92%', status: 'Online' },
+      { id: 'D011', name: 'Lighting', type: 'Smart Meter', location: 'Home B - Room 2', lastSync: '1 min ago', dataRate: '0.5 MB/s', battery: '100%', status: 'Online' },
+      // Home B – Kitchen
+      { id: 'D012', name: 'Fridge', type: 'Smart Meter', location: 'Home B - Kitchen', lastSync: '2 min ago', dataRate: '1.0 MB/s', battery: '88%', status: 'Online' },
+      { id: 'D013', name: 'Microwave', type: 'IoT Sensor', location: 'Home B - Kitchen', lastSync: '10 min ago', dataRate: '0.6 MB/s', battery: '70%', status: 'Online' },
+      // Home C – Room 1
+      { id: 'D014', name: 'Smart Plug', type: 'Smart Meter', location: 'Home C - Room 1', lastSync: '3 min ago', dataRate: '1.3 MB/s', battery: '92%', status: 'Online' },
+      { id: 'D015', name: 'TV', type: 'Smart Meter', location: 'Home C - Room 1', lastSync: '1 min ago', dataRate: '1.0 MB/s', battery: '80%', status: 'Online' },
+      // Home C – Room 2
+      { id: 'D016', name: 'Fridge', type: 'Smart Meter', location: 'Home C - Room 2', lastSync: '2 min ago', dataRate: '1.1 MB/s', battery: '95%', status: 'Online' },
+      { id: 'D017', name: 'AC', type: 'IoT Sensor', location: 'Home C - Room 2', lastSync: '5 min ago', dataRate: '0.9 MB/s', battery: '60%', status: 'Online' },
     ];
     await Device.insertMany(devicesData);
     console.log('Devices seeded:', devicesData.length);
@@ -140,26 +189,26 @@ const seedDB = async () => {
     // 6) Seed alerts
     await Alert.deleteMany({});
     const devicesForAlerts = await Device.find().lean();
-    const deviceA3 = devicesForAlerts.find((d) => d.id === 'D005');
-    const deviceB1 = devicesForAlerts.find((d) => d.id === 'D003');
+    const deviceOffline = devicesForAlerts.find((d) => d.id === 'D006');
+    const deviceWarning = devicesForAlerts.find((d) => d.id === 'D009');
     const alertsData = [
       {
         timestamp: new Date(now.getTime() - 2 * 60 * 60 * 1000),
         building: 'Home A',
-        device: deviceA3?._id,
+        device: deviceOffline?._id,
         type: 'Device Offline',
         severity: 'High',
         status: 'Open',
-        message: 'Device Sensor A3 has been offline for 2 hours',
+        message: 'Device Washing Machine has been offline for 2 hours',
       },
       {
         timestamp: new Date(now.getTime() - 4 * 60 * 60 * 1000),
         building: 'Home B',
-        device: deviceB1?._id,
+        device: deviceWarning?._id,
         type: 'Battery Low',
         severity: 'Medium',
         status: 'Investigating',
-        message: 'Device Sensor B1 battery level at 45%',
+        message: 'Device Router battery level at 45%',
         value: 45,
         threshold: 50,
       },

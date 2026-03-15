@@ -18,11 +18,6 @@ function ManagerSidebar() {
             </NavLink>
           </li>
           <li>
-            <NavLink to="/manager/mobile-monitoring">
-              Mobile Monitoring
-            </NavLink>
-          </li>
-          <li>
             <NavLink to="/manager/analytics-trends">
               Analytics &amp; Trends
             </NavLink>

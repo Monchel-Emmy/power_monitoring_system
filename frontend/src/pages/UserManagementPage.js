@@ -240,7 +240,7 @@ const UserManagementPage = () => {
               <th>Email</th>
               <th>Role</th>
               <th>Status</th>
-              <th>Buildings</th>
+              <th>Assigned homes</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -326,8 +326,8 @@ const UserManagementPage = () => {
             </div>
           </div>
           <div className="form-group form-group-buildings">
-            <label>Assign to buildings</label>
-            <p className="form-hint">Select one or more buildings this user can access.</p>
+            <label>Assigned homes</label>
+            <p className="form-hint">For managers: only these homes will be visible. Select homes this manager can access.</p>
             <div className="buildings-checkbox-group">
               {buildingsList.length === 0 ? (
                 <p className="buildings-empty">No buildings in system. Add buildings first.</p>
@@ -401,8 +401,8 @@ const UserManagementPage = () => {
               </div>
             </div>
             <div className="form-group form-group-buildings">
-              <label>Assign to buildings</label>
-              <p className="form-hint">Select one or more buildings this user can access.</p>
+              <label>Assigned homes</label>
+              <p className="form-hint">For managers: only these homes will be visible. Select homes this user can access.</p>
               <div className="buildings-checkbox-group">
                 {buildingsList.length === 0 ? (
                   <p className="buildings-empty">No buildings in system.</p>

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import './ManagerReportsPage.css';
 
-import { API_BASE } from '../config';
+import { API_BASE, getAuthHeaders } from '../config';
 
 const ManagerReportsPage = () => {
   const [reports, setReports] = useState([]);
@@ -21,7 +21,7 @@ const ManagerReportsPage = () => {
       if (periodFilter !== 'All') params.append('period', periodFilter);
       if (categoryFilter !== 'All Report Types') params.append('category', categoryFilter);
 
-      const res = await fetch(`${API_BASE}/api/manager/reports?${params}`);
+      const res = await fetch(`${API_BASE}/api/manager/reports?${params}`, { headers: getAuthHeaders() });
       if (res.ok) {
         const json = await res.json();
         setReports(json.reports || []);
@@ -41,7 +41,7 @@ const ManagerReportsPage = () => {
     try {
       const res = await fetch(`${API_BASE}/api/manager/reports/generate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify(newReport),
       });
       if (res.ok) {
@@ -62,7 +62,7 @@ const ManagerReportsPage = () => {
         period: report.period,
         category: report.category || '',
       });
-      const res = await fetch(`${API_BASE}/api/manager/reports/export?${params}`);
+      const res = await fetch(`${API_BASE}/api/manager/reports/export?${params}`, { headers: getAuthHeaders() });
       if (!res.ok) throw new Error('Export failed');
       const text = await res.text();
       const blob = new Blob([text], { type: 'text/csv;charset=utf-8' });

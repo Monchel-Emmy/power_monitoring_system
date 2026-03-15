@@ -13,13 +13,13 @@ import BuildingConfigurationPage from './pages/BuildingConfigurationPage';
 import SystemConfigurationPage from './pages/SystemConfigurationPage';
 import AuditLogPage from './pages/AuditLogPage';
 import ManagerLiveMonitoringPage from './pages/ManagerLiveMonitoringPage';
-import ManagerMobileMonitoringPage from './pages/ManagerMobileMonitoringPage';
 import ManagerPredictiveAnalyticsPage from './pages/ManagerPredictiveAnalyticsPage';
 import ManagerAnalyticsTrendsPage from './pages/ManagerAnalyticsTrendsPage';
 import ManagerAlertsNotificationsPage from './pages/ManagerAlertsNotificationsPage';
 import ManagerBuildingZonesPage from './pages/ManagerBuildingZonesPage';
 import ManagerCostManagementPage from './pages/ManagerCostManagementPage';
 import ManagerReportsPage from './pages/ManagerReportsPage';
+import SensorSimulatorPage from './pages/SensorSimulatorPage';
 
 function AppRoutes() {
   const { user, token } = useAuth();
@@ -36,11 +36,11 @@ function AppRoutes() {
         <Route path="building-configuration" element={<BuildingConfigurationPage />} />
         <Route path="system-configuration" element={<SystemConfigurationPage />} />
         <Route path="audit-log" element={<AuditLogPage />} />
+        <Route path="sensor-simulator" element={<SensorSimulatorPage />} />
       </Route>
 
       <Route path="/manager" element={<ProtectedRoute requiredRole={['admin', 'manager']}><ManagerLayout /></ProtectedRoute>}>
         <Route index element={<ManagerLiveMonitoringPage />} />
-        <Route path="mobile-monitoring" element={<ManagerMobileMonitoringPage />} />
         <Route path="analytics-trends" element={<ManagerAnalyticsTrendsPage />} />
         <Route path="predictive-analytics" element={<ManagerPredictiveAnalyticsPage />} />
         <Route path="alerts-notifications" element={<ManagerAlertsNotificationsPage />} />

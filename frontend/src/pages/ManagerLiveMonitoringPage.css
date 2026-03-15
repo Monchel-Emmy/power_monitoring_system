@@ -148,6 +148,37 @@
   overflow: hidden;
 }
 
+.chart-area-container.chart-area-with-tooltip {
+  overflow: visible;
+}
+
+.live-chart-hover-dot {
+  cursor: pointer;
+}
+
+.live-chart-tooltip {
+  position: absolute;
+  pointer-events: none;
+  padding: 10px 14px;
+  background: #1f2937;
+  color: #fff;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+  white-space: nowrap;
+  z-index: 10;
+}
+
+.live-chart-tooltip-time {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.live-chart-tooltip-value {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
 .power-chart-svg {
   width: 100%;
   height: 100%;
@@ -324,6 +355,236 @@
   color: #9ca3af;
   font-size: 0.9rem;
   margin: 0;
+}
+
+/* Live hierarchy: House → Room → Device */
+.live-hierarchy-card {
+  background-color: #ffffff;
+  border-radius: 18px;
+  padding: 20px 24px 24px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+  margin-bottom: 24px;
+}
+
+.live-hierarchy-header h2 {
+  margin: 0 0 4px;
+  font-size: 1.1rem;
+  color: #111827;
+}
+
+.live-hierarchy-header p {
+  margin: 0 0 20px;
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.live-hierarchy-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hierarchy-house {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.hierarchy-house-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: linear-gradient(to bottom, #f8fafc, #f1f5f9);
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  text-align: left;
+  transition: background 0.2s;
+}
+
+.hierarchy-house-btn:hover {
+  background: #e2e8f0;
+}
+
+.hierarchy-icon {
+  flex-shrink: 0;
+  font-size: 1.2rem;
+}
+
+.house-icon {
+  color: #2563eb;
+}
+
+.room-icon {
+  color: #059669;
+}
+
+.hierarchy-house-name {
+  font-weight: 600;
+  color: #111827;
+}
+
+.hierarchy-house-meta,
+.hierarchy-room-meta {
+  margin-left: auto;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.hierarchy-chevron {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.hierarchy-rooms {
+  padding: 8px 12px 12px;
+  background: #fff;
+  border-top: 1px solid #e5e7eb;
+}
+
+.hierarchy-room {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+
+.hierarchy-room:last-child {
+  margin-bottom: 0;
+}
+
+.hierarchy-room-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: #fafafa;
+  border: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+  text-align: left;
+  transition: background 0.2s;
+}
+
+.hierarchy-room-btn:hover {
+  background: #f1f5f9;
+}
+
+.hierarchy-room-name {
+  font-weight: 500;
+  color: #374151;
+}
+
+.hierarchy-devices {
+  padding: 12px;
+  background: #fff;
+  border-top: 1px solid #e5e7eb;
+}
+
+.hierarchy-devices-header {
+  display: grid;
+  grid-template-columns: 1fr 90px 80px 80px 90px;
+  gap: 12px;
+  padding: 8px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: #6b7280;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 8px;
+}
+
+@media (max-width: 640px) {
+  .hierarchy-devices-header {
+    grid-template-columns: 1fr 70px 70px 70px 72px;
+    font-size: 0.7rem;
+  }
+}
+
+.hierarchy-device-row {
+  display: grid;
+  grid-template-columns: 1fr 90px 80px 80px 90px;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+
+.hierarchy-device-row:hover {
+  background: #f8fafc;
+}
+
+@media (max-width: 640px) {
+  .hierarchy-device-row {
+    grid-template-columns: 1fr 70px 70px 70px 72px;
+    font-size: 0.85rem;
+  }
+}
+
+.device-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  color: #111827;
+}
+
+.device-icon {
+  color: #64748b;
+  font-size: 1rem;
+}
+
+.device-power {
+  color: #2563eb;
+  font-weight: 500;
+}
+
+.device-voltage {
+  color: #059669;
+}
+
+.device-current {
+  color: #7c3aed;
+}
+
+.device-status {
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 6px;
+  justify-self: start;
+}
+
+.device-status.status-online {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.device-status.status-warning {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.device-status.status-offline {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.hierarchy-empty {
+  color: #9ca3af;
+  font-size: 0.9rem;
+  margin: 0;
+  padding: 16px 0;
+}
+
+.hierarchy-error {
+  color: #dc2626;
 }
 
 /* System Status */

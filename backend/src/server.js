@@ -12,6 +12,7 @@ const userRoutes = require('./routes/userRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const managerRoutes = require('./routes/managerRoutes');
 const authRoutes = require('./routes/authRoutes');
+const { optionalManagerAuth } = require('./middleware/managerAuth');
 let alertRoutes;
 try {
   alertRoutes = require('./routes/alertRoutes');
@@ -42,7 +43,7 @@ app.use('/api/sensor-readings', sensorReadingRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/api/manager', managerRoutes);
+app.use('/api/manager', optionalManagerAuth, managerRoutes);
 if (alertRoutes) {
   app.use('/api/alerts', alertRoutes);
   console.log('Alert routes registered at /api/alerts');

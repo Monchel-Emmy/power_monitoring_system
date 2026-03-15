@@ -294,9 +294,10 @@ function DeviceManagementPage() {
               type="text"
               value={newDevice.name}
               onChange={(e) => setNewDevice({ ...newDevice, name: e.target.value })}
-              placeholder="e.g. Power Meter A1"
+              placeholder="e.g. Fridge, TV, AC"
               required
             />
+            <p className="form-hint">Use a clear name (e.g. Fridge, TV) so managers see consumption by device in Live Monitoring.</p>
           </div>
           <div className="form-group">
             <label>Type</label>
@@ -389,9 +390,10 @@ function DeviceManagementPage() {
                 type="text"
                 value={currentDevice.name}
                 onChange={(e) => setCurrentDevice({ ...currentDevice, name: e.target.value })}
-                placeholder="Device name"
+                placeholder="e.g. Fridge, TV"
                 required
               />
+              <p className="form-hint">Managers see this name and consumption in Live Monitoring.</p>
             </div>
             <div className="form-group">
               <label>Type</label>

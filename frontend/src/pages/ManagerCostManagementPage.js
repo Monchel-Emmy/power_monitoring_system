@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import './ManagerCostManagementPage.css';
-import { API_BASE } from '../config';
+import { API_BASE, getAuthHeaders } from '../config';
 
 const ManagerCostManagementPage = () => {
   const [data, setData] = useState(null);
@@ -12,7 +12,7 @@ const ManagerCostManagementPage = () => {
     const fetchData = async () => {
       try {
         const range = timeRange === '3y' ? '3y' : '12m';
-        const res = await fetch(`${API_BASE}/api/manager/cost-management?range=${range}`);
+        const res = await fetch(`${API_BASE}/api/manager/cost-management?range=${range}`, { headers: getAuthHeaders() });
         if (res.ok) {
           const json = await res.json();
           setData(json);
@@ -30,7 +30,7 @@ const ManagerCostManagementPage = () => {
   }, [timeRange]);
 
   const formatCurrency = (amount) => {
-    return `$${Number(amount).toLocaleString()}`;
+    return `${Number(amount).toLocaleString()} Frw`;
   };
 
   const maxCost = data?.monthlyTrend?.length
@@ -105,7 +105,7 @@ const ManagerCostManagementPage = () => {
           <div className="cost-chart-container">
             <div className="cost-chart-wrapper">
               <div className="cost-chart-y-axis">
-                <div className="cost-y-axis-label">Cost ($)</div>
+                <div className="cost-y-axis-label">Cost (Frw)</div>
                 <div className="cost-y-axis-ticks">
                   {[100, 75, 50, 25, 0].map((pct) => {
                     const value = Math.round((maxCost * pct) / 100);

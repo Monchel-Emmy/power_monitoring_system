@@ -51,7 +51,17 @@ router.post('/signup', async (req, res) => {
     await emailVerification.save();
     
     // Send verification email
-    const emailSent = await sendVerificationEmail(email.trim(), verificationCode);
+    const emailSent = await sendVerificationEmail(email, verificationCode);
+    
+    // For development/production issues, also return the code if email fails
+    if (!emailSent) {
+      console.log('Email failed, returning code for testing:', verificationCode);
+      return res.status(200).json({ 
+        message: 'Verification code sent (email service unavailable)',
+        verificationCode: verificationCode, // Only for testing
+        emailFallback: true 
+      });
+    }
     
     // Log successful signup
     const ip = getClientIP(req);
@@ -408,6 +418,27 @@ router.post('/reset-password', async (req, res) => {
   } catch (err) {
     console.error('Reset password error:', err);
     res.status(500).json({ message: 'Failed to reset password' });
+  }
+});
+
+// Debug endpoint to test email service
+router.get('/test-email', async (req, res) => {
+  try {
+    console.log('Testing email service...');
+    console.log('EMAIL_HOST:', process.env.EMAIL_HOST);
+    console.log('EMAIL_USER:', process.env.EMAIL_USER);
+    console.log('EMAIL_PASS exists:', !!process.env.EMAIL_PASS);
+    
+    const emailSent = await sendVerificationEmail('test@example.com', '123456');
+    
+    res.json({
+      message: 'Email test completed',
+      emailConfigured: !!process.env.EMAIL_HOST && !!process.env.EMAIL_USER && !!process.env.EMAIL_PASS,
+      emailService: emailSent
+    });
+  } catch (error) {
+    console.error('Email test error:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 

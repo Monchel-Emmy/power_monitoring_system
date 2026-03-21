@@ -15,37 +15,37 @@ function EmailVerificationPage() {
   const location = useLocation();
   const email = location.state?.email || '';
 
+  const [fallbackCode, setFallbackCode] = useState('');
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const code = params.get('code');
+    if (code) {
+      setFallbackCode(code);
+      setCode(code);
+    }
+  }, [location.search]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-    
     try {
       const res = await fetch(`${API_BASE}/api/auth/verify-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: email.trim(),
-          code: code.trim(),
+          code: verificationCode.trim(),
         }),
       });
-      
       const data = await res.json().catch(() => ({}));
-      
       if (!res.ok) {
         setError(data.message || 'Verification failed');
         setLoading(false);
         return;
       }
-      
-      setSuccess(true);
-      setTimeout(() => {
-        navigate('/login', { 
-          replace: true,
-          state: { message: 'Email verified successfully! Please sign in.' }
-        });
-      }, 2000);
-      
+      navigate('/login', { replace: true, state: { message: 'Email verified successfully! Please login.' } });
     } catch (err) {
       setError('Network error. Please try again.');
     }
@@ -129,7 +129,22 @@ function EmailVerificationPage() {
         <p className="login-subtitle">
           We've sent a verification code to <strong>{email}</strong>
         </p>
-
+        
+        {fallbackCode && (
+          <div style={{
+            backgroundColor: '#fef3c7',
+            border: '1px solid #f59e0b',
+            borderRadius: '8px',
+            padding: '12px',
+            marginBottom: '1rem',
+            fontSize: '14px'
+          }}>
+            <strong>Email service unavailable</strong><br />
+            Your verification code is: <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#dc2626' }}>{fallbackCode}</span><br />
+            <small>This code is valid for 10 minutes.</small>
+          </div>
+        )}
+        
         <form onSubmit={handleSubmit}>
           <div className="verification-code-input">
             <label>Enter 6-digit verification code</label>

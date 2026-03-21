@@ -46,10 +46,18 @@ function SignupPage() {
         return;
       }
       // Redirect to email verification page after successful signup
-      navigate('/verify-email', { 
-        replace: true,
-        state: { email: email.trim() }
-      });
+      if (data.emailFallback && data.verificationCode) {
+        // Email failed, show code in URL for testing
+        navigate(`/verify-email?code=${data.verificationCode}`, { 
+          replace: true,
+          state: { email: email.trim(), emailFallback: true }
+        });
+      } else {
+        navigate('/verify-email', { 
+          replace: true,
+          state: { email: email.trim() }
+        });
+      }
     } catch (err) {
       setError('Network error. Please try again.');
     }

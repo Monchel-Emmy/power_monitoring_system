@@ -34,9 +34,10 @@ router.get('/callback',
       );
 
       // Redirect to frontend with token and user data
+      const frontendUrl = process.env.FRONTEND_ORIGIN || 'http://localhost:3000';
       const redirectUrl = req.user.role === 'admin' 
-        ? `http://localhost:3000/auth-success?token=${token}&role=admin&username=${encodeURIComponent(req.user.username)}&email=${encodeURIComponent(req.user.email)}`
-        : `http://localhost:3000/auth-success?token=${token}&role=manager&username=${encodeURIComponent(req.user.username)}&email=${encodeURIComponent(req.user.email)}`;
+        ? `${frontendUrl}/auth-success?token=${token}&role=admin&username=${encodeURIComponent(req.user.username)}&email=${encodeURIComponent(req.user.email)}`
+        : `${frontendUrl}/auth-success?token=${token}&role=manager&username=${encodeURIComponent(req.user.username)}&email=${encodeURIComponent(req.user.email)}`;
       
       res.redirect(redirectUrl);
     } catch (error) {

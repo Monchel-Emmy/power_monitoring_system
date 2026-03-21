@@ -39,7 +39,11 @@ MONGODB_URI=mongodb://localhost:27017/powermonitoring
 #### Frontend Environment
 Copy `frontend/.env.example` to `frontend/.env`:
 ```bash
+# Development
 REACT_APP_API_BASE=http://localhost:4000
+
+# Production
+REACT_APP_API_BASE=https://power-monitoring-system-backend.onrender.com
 ```
 
 ### 3. Google OAuth Setup (Required for Google Login)
@@ -53,7 +57,7 @@ REACT_APP_API_BASE=http://localhost:4000
    - Select "Web Application"
    - Add authorized redirect URIs:
      - Development: `http://localhost:4000/api/auth/google/callback`
-     - Production: `https://yourdomain.com/api/auth/google/callback`
+     - Production: `https://power-monitoring-system-backend.onrender.com/api/auth/google/callback`
 5. **Copy Client ID and Secret** to your `.env`
 
 ### 4. Gmail Setup (Required for Email Features)
@@ -101,12 +105,21 @@ npm start
 
 ### 7. Access the Application
 
+#### Development
 - **Frontend**: http://localhost:3000
 - **Backend API**: http://localhost:4000
 - **Login Pages**: 
   - Login: http://localhost:3000/login
   - Signup: http://localhost:3000/signup
   - Forgot Password: http://localhost:3000/forgot-password
+
+#### Production
+- **Frontend**: https://power-monitoring-system.vercel.app
+- **Backend API**: https://power-monitoring-system-backend.onrender.com
+- **Login Pages**: 
+  - Login: https://power-monitoring-system.vercel.app/login
+  - Signup: https://power-monitoring-system.vercel.app/signup
+  - Forgot Password: https://power-monitoring-system.vercel.app/forgot-password
 
 ## 🎯 Features Available
 

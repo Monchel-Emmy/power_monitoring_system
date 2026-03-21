@@ -100,7 +100,8 @@ const sendPasswordResetEmail = async (userEmail, resetToken) => {
   try {
     const transporter = await createTransporter();
     
-    const resetUrl = `http://localhost:3000/reset-password?token=${resetToken}&email=${encodeURIComponent(userEmail)}`;
+    const frontendUrl = process.env.FRONTEND_ORIGIN || 'http://localhost:3000';
+    const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}&email=${encodeURIComponent(userEmail)}`;
     
     const info = await transporter.sendMail({
       from: '"Power Monitoring System" <noreply@powermonitoring.com>',

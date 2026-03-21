@@ -9,7 +9,10 @@ const userSchema = new mongoose.Schema({
     },
     password: {
         type: String,
-        required: true
+        required: function() {
+            // Password is required unless user has Google ID
+            return !this.googleId;
+        }
     },
     role: {
         type: String,
@@ -29,6 +32,14 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
     },
+    googleId: {
+        type: String,
+        sparse: true, // Only index if present
+    },
+    avatar: {
+        type: String,
+        default: null,
+    },
     buildings: [
         {
             type: mongoose.Schema.Types.ObjectId,
@@ -38,7 +49,8 @@ const userSchema = new mongoose.Schema({
 });
 
 userSchema.pre('save', async function () {
-  if (!this.isModified('password')) return;
+  // Only hash password if it exists and has been modified
+  if (!this.isModified('password') || !this.password) return;
   this.password = await bcrypt.hash(this.password, 10);
 });
 

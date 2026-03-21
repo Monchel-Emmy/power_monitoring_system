@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import GoogleAuthButton from '../components/GoogleAuthButton';
 import './LoginPage.css';
 
 import { API_BASE } from '../config';
@@ -57,6 +58,10 @@ function LoginPage() {
     setLoading(false);
   };
 
+  const handleGoogleLogin = () => {
+    window.location.href = `${API_BASE}/api/auth/google`;
+  };
+
   const roleLabel = role === 'admin' ? 'Administrator' : 'Home & Building Manager';
 
   return (
@@ -91,6 +96,34 @@ function LoginPage() {
           {error && <div className="login-error">{error}</div>}
           <button type="submit" className="login-button" disabled={loading}>{loading ? 'Signing in…' : `Sign In as ${roleLabel}`}</button>
         </form>
+
+        <div style={{ margin: '1rem 0', textAlign: 'center' }}>
+          <Link to="/forgot-password" style={{ color: '#2563eb', textDecoration: 'none', fontSize: '0.875rem' }}>
+            Forgot your password?
+          </Link>
+        </div>
+
+        <div style={{ margin: '1rem 0' }}>
+          <div style={{ textAlign: 'center', position: 'relative', margin: '1.5rem 0' }}>
+            <hr style={{ border: 'none', borderTop: '1px solid #e5e7eb', margin: 0 }} />
+            <span style={{ 
+              position: 'absolute', 
+              top: '-10px', 
+              left: '50%', 
+              transform: 'translateX(-50%)',
+              backgroundColor: 'white',
+              padding: '0 1rem',
+              color: '#6b7280',
+              fontSize: '0.875rem'
+            }}>OR</span>
+          </div>
+          
+          <GoogleAuthButton 
+            text="Sign in with Google" 
+            onClick={handleGoogleLogin}
+            disabled={loading}
+          />
+        </div>
 
         <p className="login-demo-hint">Demo: alice.smith@example.com / password123 (Admin), bob.johnson@example.com / password123 (Manager)</p>
         <p className="login-signup-link">Don&apos;t have an account? <Link to="/signup">Sign up</Link></p>

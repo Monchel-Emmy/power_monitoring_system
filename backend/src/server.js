@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const mongoose = require('mongoose');
+const passport = require('passport');
+const session = require('express-session');
 
 // Import routes
 const buildingRoutes = require('./routes/buildingRoutes');
@@ -12,7 +14,9 @@ const userRoutes = require('./routes/userRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const managerRoutes = require('./routes/managerRoutes');
 const authRoutes = require('./routes/authRoutes');
+const googleAuthRoutes = require('./routes/googleAuth');
 const { optionalManagerAuth } = require('./middleware/managerAuth');
+require('./config/passport'); // Initialize passport
 let alertRoutes;
 try {
   alertRoutes = require('./routes/alertRoutes');
@@ -33,6 +37,18 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
+// Session middleware for passport
+app.use(session({
+  secret: process.env.JWT_SECRET || 'power-monitor-secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: false } // For development, set to true in production with HTTPS
+}));
+
+// Passport initialization
+app.use(passport.initialize());
+app.use(passport.session());
+
 // Use building routes
 app.use('/api/buildings', buildingRoutes);
 // Use zone routes
@@ -42,6 +58,7 @@ app.use('/api/devices', deviceRoutes);
 app.use('/api/sensor-readings', sensorReadingRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/auth/google', googleAuthRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/manager', optionalManagerAuth, managerRoutes);
 if (alertRoutes) {

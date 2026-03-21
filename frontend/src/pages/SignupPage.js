@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import GoogleAuthButton from '../components/GoogleAuthButton';
 import { useAuth } from '../context/AuthContext';
-import './LoginPage.css';
-
 import { API_BASE } from '../config';
+import './LoginPage.css';
 
 function SignupPage() {
   const [role, setRole] = useState('manager');
@@ -54,6 +54,10 @@ function SignupPage() {
       setError('Network error. Please try again.');
     }
     setLoading(false);
+  };
+
+  const handleGoogleSignup = () => {
+    window.location.href = `${API_BASE}/api/auth/google`;
   };
 
   const roleLabel = role === 'admin' ? 'Administrator' : 'Home & Building Manager';
@@ -141,6 +145,28 @@ function SignupPage() {
             {loading ? 'Creating account…' : `Sign Up as ${roleLabel}`}
           </button>
         </form>
+
+        <div style={{ margin: '1rem 0' }}>
+          <div style={{ textAlign: 'center', position: 'relative', margin: '1.5rem 0' }}>
+            <hr style={{ border: 'none', borderTop: '1px solid #e5e7eb', margin: 0 }} />
+            <span style={{ 
+              position: 'absolute', 
+              top: '-10px', 
+              left: '50%', 
+              transform: 'translateX(-50%)',
+              backgroundColor: 'white',
+              padding: '0 1rem',
+              color: '#6b7280',
+              fontSize: '0.875rem'
+            }}>OR</span>
+          </div>
+          
+          <GoogleAuthButton 
+            text="Sign up with Google" 
+            onClick={handleGoogleSignup}
+            disabled={loading}
+          />
+        </div>
 
         <p className="login-signup-link">
           Already have an account? <Link to="/login">Sign in</Link>

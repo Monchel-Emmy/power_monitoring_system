@@ -4,7 +4,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const EmailVerification = require('../models/EmailVerification');
-const { sendVerificationEmail, generateVerificationCode } = require('../utils/emailService');
+const PasswordReset = require('../models/PasswordReset');
+const { sendVerificationEmail, generateVerificationCode, sendPasswordResetEmail, generateResetToken } = require('../utils/emailService');
 const { logAuditEvent, getClientIP } = require('../utils/auditLogger');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'power-monitor-secret-change-in-production';
@@ -299,6 +300,114 @@ router.get('/me', (req, res) => {
       .catch(() => res.status(401).json({ message: 'Invalid token' }));
   } catch {
     res.status(401).json({ message: 'Invalid or expired token' });
+  }
+});
+
+// POST /api/auth/forgot-password
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+    
+    const user = await User.findOne({ email: email.trim().toLowerCase() });
+    
+    // Always return success to prevent email enumeration attacks
+    if (!user) {
+      return res.json({ message: 'If an account with that email exists, a password reset link has been sent.' });
+    }
+    
+    // Google OAuth users don't have passwords, so they can't reset them
+    if (user.googleId && !user.password) {
+      return res.json({ message: 'If an account with that email exists, a password reset link has been sent.' });
+    }
+    
+    // Delete any existing reset tokens for this email
+    await PasswordReset.deleteMany({ email: email.trim().toLowerCase() });
+    
+    // Generate reset token
+    const resetToken = generateResetToken();
+    const passwordReset = new PasswordReset({
+      email: email.trim().toLowerCase(),
+      token: resetToken,
+    });
+    await passwordReset.save();
+    
+    // Send reset email
+    const emailSent = await sendPasswordResetEmail(email.trim().toLowerCase(), resetToken);
+    
+    // Log password reset request
+    const ip = getClientIP(req);
+    await logAuditEvent(
+      email,
+      'Security Events',
+      'Password Reset Request',
+      `Password reset requested for account`,
+      ip,
+      'info'
+    );
+    
+    res.json({ message: 'If an account with that email exists, a password reset link has been sent.' });
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    res.status(500).json({ message: 'Failed to process password reset request' });
+  }
+});
+
+// POST /api/auth/reset-password
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { token, email, newPassword } = req.body;
+    
+    if (!token || !email || !newPassword) {
+      return res.status(400).json({ message: 'Token, email, and new password are required' });
+    }
+    
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters long' });
+    }
+    
+    // Find the reset token
+    const resetRecord = await PasswordReset.findOne({ 
+      email: email.trim().toLowerCase(), 
+      token: token.trim() 
+    });
+    
+    if (!resetRecord || !resetRecord.isValid()) {
+      return res.status(400).json({ message: 'Invalid or expired reset token' });
+    }
+    
+    // Find the user
+    const user = await User.findOne({ email: email.trim().toLowerCase() });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // Update password
+    user.password = newPassword;
+    await user.save();
+    
+    // Mark token as used
+    resetRecord.isUsed = true;
+    await resetRecord.save();
+    
+    // Log successful password reset
+    const ip = getClientIP(req);
+    await logAuditEvent(
+      email,
+      'Security Events',
+      'Password Reset Successful',
+      `Password was successfully reset for account`,
+      ip,
+      'success'
+    );
+    
+    res.json({ message: 'Password has been reset successfully. You can now login with your new password.' });
+  } catch (err) {
+    console.error('Reset password error:', err);
+    res.status(500).json({ message: 'Failed to reset password' });
   }
 });
 

@@ -1,5 +1,22 @@
 {
+  "name": "power-monitoring-system",
+  "version": "1.0.0",
+  "description": "In-House Power Usage Monitoring System with Complete Authentication",
+  "scripts": {
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm start",
+    "dev:frontend": "cd frontend && npm start",
+    "setup:env": "cp backend/.env.example backend/.env && cp frontend/.env.example frontend/.env && echo \"Environment files created! Please edit backend/.env and frontend/.env with your credentials.\"",
+    "seed": "cd backend && node src/seed.js"
+  },
+  "keywords": ["power", "monitoring", "energy", "authentication", "google-oauth"],
+  "author": "Power Monitoring Team",
+  "license": "MIT",
   "dependencies": {
     "react-icons": "^5.5.0"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
   }
 }

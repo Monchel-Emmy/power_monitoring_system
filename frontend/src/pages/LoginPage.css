@@ -62,6 +62,7 @@
 .login-role-icon.person { mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 12a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0 2c-4 0-6 2-6 4v2h12v-2c0-2-2-4-6-4z'/%3E%3C/svg%3E"); -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 12a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0 2c-4 0-6 2-6 4v2h12v-2c0-2-2-4-6-4z'/%3E%3C/svg%3E"); }
 
 .login-error { margin-bottom: 0.75rem; padding: 0.5rem; background: #fef2f2; color: #dc2626; border-radius: 6px; font-size: 0.875rem; }
+.login-success { margin-bottom: 0.75rem; padding: 0.5rem; background: #f0fdf4; color: #16a34a; border-radius: 6px; font-size: 0.875rem; }
 .login-demo-hint { margin-top: 1rem; font-size: 0.75rem; color: #9ca3af; }
 .login-signup-link { margin-top: 1rem; font-size: 0.9rem; color: #6b7280; }
 .login-signup-link a { color: #2563eb; text-decoration: none; }

@@ -45,12 +45,11 @@ function SignupPage() {
         setLoading(false);
         return;
       }
-      login(data.token, data.user);
-      if (data.user.role === 'admin') {
-        navigate('/', { replace: true });
-      } else {
-        navigate('/manager', { replace: true });
-      }
+      // Redirect to email verification page after successful signup
+      navigate('/verify-email', { 
+        replace: true,
+        state: { email: email.trim() }
+      });
     } catch (err) {
       setError('Network error. Please try again.');
     }

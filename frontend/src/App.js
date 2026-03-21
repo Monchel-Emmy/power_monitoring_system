@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
+import EmailVerificationPage from './pages/EmailVerificationPage';
 import DashboardPage from './pages/DashboardPage';
 import UserManagementPage from './pages/UserManagementPage';
 import DashboardLayout from './components/DashboardLayout';
@@ -26,6 +27,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={token ? <Navigate to={user?.role === 'admin' ? '/' : '/manager'} replace /> : <LoginPage />} />
       <Route path="/signup" element={token ? <Navigate to={user?.role === 'admin' ? '/' : '/manager'} replace /> : <SignupPage />} />
+      <Route path="/verify-email" element={token ? <Navigate to={user?.role === 'admin' ? '/' : '/manager'} replace /> : <EmailVerificationPage />} />
 
       <Route path="/" element={<ProtectedRoute requiredRole="admin"><DashboardLayout /></ProtectedRoute>}>
         <Route index element={<DashboardPage />} />

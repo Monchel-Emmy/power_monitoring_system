@@ -69,7 +69,8 @@ const seedDB = async () => {
         role: 'admin',
         email: 'admin@example.com',
         status: 'Active',
-        buildings: [],
+        isEmailVerified: true,
+        buildings: [buildingA._id, buildingB._id, buildingC._id],
       },
       {
         username: 'alice.smith',
@@ -77,6 +78,7 @@ const seedDB = async () => {
         role: 'admin',
         email: 'alice.smith@example.com',
         status: 'Active',
+        isEmailVerified: true,
         buildings: [buildingA._id, buildingB._id],
       },
       {
@@ -85,6 +87,7 @@ const seedDB = async () => {
         role: 'manager',
         email: 'bob.johnson@example.com',
         status: 'Active',
+        isEmailVerified: true,
         buildings: [buildingB._id],
       },
       {
@@ -93,6 +96,7 @@ const seedDB = async () => {
         role: 'manager',
         email: 'sarah.manager@example.com',
         status: 'Active',
+        isEmailVerified: true,
         buildings: [buildingA._id, buildingC._id],
       },
       {
@@ -101,6 +105,7 @@ const seedDB = async () => {
         role: 'user',
         email: 'charlie.brown@example.com',
         status: 'Active',
+        isEmailVerified: true,
         buildings: [buildingA._id],
       },
     ];

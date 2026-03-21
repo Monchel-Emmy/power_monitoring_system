@@ -7,7 +7,7 @@ import { API_BASE } from '../config';
 
 function LoginPage() {
   const [role, setRole] = useState('admin');
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -15,6 +15,7 @@ function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from || '/';
+  const successMessage = location.state?.message;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -25,13 +26,21 @@ function LoginPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          username: username.trim(),
+          email: email.trim(),
           password,
           role: role === 'admin' ? 'Administrator' : 'Home & Building Manager',
         }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
+        if (data.requiresVerification) {
+          // Redirect to verification page
+          navigate('/verify-email', { 
+            replace: true,
+            state: { email: data.email }
+          });
+          return;
+        }
         setError(data.message || 'Login failed');
         setLoading(false);
         return;
@@ -71,18 +80,19 @@ function LoginPage() {
 
         <form onSubmit={handleSubmit}>
           <div className="input-group">
-            <label htmlFor="username">Username</label>
-            <input id="username" type="text" autoComplete="username" placeholder="Enter username" value={username} onChange={(e) => setUsername(e.target.value)} required />
+            <label htmlFor="email">Email</label>
+            <input id="email" type="email" autoComplete="email" placeholder="Enter email" value={email} onChange={(e) => setEmail(e.target.value)} required />
           </div>
           <div className="input-group">
             <label htmlFor="password">Password</label>
             <input id="password" type="password" autoComplete="current-password" placeholder="Enter password" value={password} onChange={(e) => setPassword(e.target.value)} required />
           </div>
+          {successMessage && <div className="login-success">{successMessage}</div>}
           {error && <div className="login-error">{error}</div>}
           <button type="submit" className="login-button" disabled={loading}>{loading ? 'Signing in…' : `Sign In as ${roleLabel}`}</button>
         </form>
 
-        <p className="login-demo-hint">Demo: alice.smith / password123 (Admin), bob.johnson / password123 (Manager)</p>
+        <p className="login-demo-hint">Demo: alice.smith@example.com / password123 (Admin), bob.johnson@example.com / password123 (Manager)</p>
         <p className="login-signup-link">Don&apos;t have an account? <Link to="/signup">Sign up</Link></p>
       </div>
     </div>

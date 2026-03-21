@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { logAuditEvent, getClientIP } = require('../utils/auditLogger');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'power-monitor-secret-change-in-production';
 
@@ -16,6 +17,16 @@ router.post('/signup', async (req, res) => {
     const normalizedRole = (role === 'Administrator' || role === 'admin') ? 'admin' : (role === 'Building Manager' || role === 'Home & Building Manager' || role === 'manager') ? 'manager' : 'user';
     const existing = await User.findOne({ $or: [{ username: username.trim() }, { email: email.trim() }] });
     if (existing) {
+      // Log duplicate signup attempt
+      const ip = getClientIP(req);
+      await logAuditEvent(
+        username,
+        'Security Events',
+        'Duplicate Signup Attempt',
+        `User tried to register with existing username/email: ${username} / ${email}`,
+        ip,
+        'warning'
+      );
       return res.status(400).json({ message: 'Username or email already exists' });
     }
     const user = new User({
@@ -27,6 +38,18 @@ router.post('/signup', async (req, res) => {
       buildings: [],
     });
     await user.save();
+    
+    // Log successful signup
+    const ip = getClientIP(req);
+    await logAuditEvent(
+      username,
+      'User Actions',
+      'User Signup',
+      `New user registered with email: ${email}, role: ${normalizedRole}`,
+      ip,
+      'success'
+    );
+    
     const token = jwt.sign(
       { id: user._id, role: user.role },
       JWT_SECRET,
@@ -42,6 +65,16 @@ router.post('/signup', async (req, res) => {
       },
     });
   } catch (err) {
+    // Log failed signup
+    const ip = getClientIP(req);
+    await logAuditEvent(
+      username || 'unknown',
+      'Security Events',
+      'Signup Failed',
+      `Failed signup attempt: ${err.message}`,
+      ip,
+      'error'
+    );
     res.status(500).json({ message: err.message || 'Signup failed' });
   }
 });
@@ -55,14 +88,44 @@ router.post('/login', async (req, res) => {
     }
     const user = await User.findOne({ username: username.trim() });
     if (!user) {
+      // Log failed login - user not found
+      const ip = getClientIP(req);
+      await logAuditEvent(
+        username,
+        'Security Events',
+        'Login Failed',
+        'Login attempt with non-existent username',
+        ip,
+        'error'
+      );
       return res.status(401).json({ message: 'Invalid username or password' });
     }
     const match = await bcrypt.compare(password, user.password);
     if (!match) {
+      // Log failed login - wrong password
+      const ip = getClientIP(req);
+      await logAuditEvent(
+        username,
+        'Security Events',
+        'Login Failed',
+        'Login attempt with incorrect password',
+        ip,
+        'error'
+      );
       return res.status(401).json({ message: 'Invalid username or password' });
     }
     const requestedRole = (role === 'Administrator' || role === 'admin') ? 'admin' : (role === 'Building Manager' || role === 'Home & Building Manager' || role === 'manager') ? 'manager' : null;
     if (requestedRole && user.role !== requestedRole) {
+      // Log role access denied
+      const ip = getClientIP(req);
+      await logAuditEvent(
+        username,
+        'Security Events',
+        'Access Denied',
+        `User tried to access ${requestedRole} role but has ${user.role} role`,
+        ip,
+        'warning'
+      );
       return res.status(403).json({ message: 'You do not have access for the selected role' });
     }
     const token = jwt.sign(
@@ -70,6 +133,18 @@ router.post('/login', async (req, res) => {
       JWT_SECRET,
       { expiresIn: '7d' }
     );
+    
+    // Log successful login
+    const ip = getClientIP(req);
+    await logAuditEvent(
+      username,
+      'User Actions',
+      'User Login',
+      `User logged in successfully with role: ${user.role}`,
+      ip,
+      'success'
+    );
+    
     res.json({
       token,
       user: {
@@ -80,6 +155,16 @@ router.post('/login', async (req, res) => {
       },
     });
   } catch (err) {
+    // Log general login error
+    const ip = getClientIP(req);
+    await logAuditEvent(
+      username || 'unknown',
+      'Security Events',
+      'Login Error',
+      `Login system error: ${err.message}`,
+      ip,
+      'error'
+    );
     res.status(500).json({ message: err.message || 'Login failed' });
   }
 });

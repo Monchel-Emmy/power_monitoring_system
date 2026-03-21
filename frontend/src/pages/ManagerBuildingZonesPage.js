@@ -23,7 +23,7 @@ const ManagerBuildingZonesPage = () => {
 
   const fetchData = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/manager/building-zones`, { headers: getAuthHeaders() });
+      const res = await fetch(`${API_BASE}/api/manager/live-hierarchy`, { headers: getAuthHeaders() });
       if (res.ok) {
         const json = await res.json();
         setData(json);
@@ -59,7 +59,8 @@ const ManagerBuildingZonesPage = () => {
       };
       const res = await fetch(`${API_BASE}/api/buildings`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        // FIX: added getAuthHeaders() so the POST is authenticated
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
@@ -101,48 +102,87 @@ const ManagerBuildingZonesPage = () => {
           <div className="building-loading">Loading...</div>
         ) : (
           <div className="multi-building-row">
-            {data?.buildings?.map((b) => (
-              <div key={b._id || b.name} className="building-summary-card">
+            {data?.houses?.map((house) => (
+              <div key={house.id || house.name} className="building-summary-card">
                 <div className="summary-header">
                   <div>
-                    <h3>{b.name}</h3>
-                    <p>{b.address}</p>
+                    <h3>{house.name}</h3>
                   </div>
-                  <span className={`summary-status status-${b.status?.toLowerCase()}`}>
-                    {b.status}
+                  <span className={`summary-status status-active`}>
+                    Active
                   </span>
                 </div>
-                <div className="summary-usage">
-                  <span className="label">Current Usage</span>
-                  <span className="value">{b.currentUsageKw} kW</span>
-                  <div className="capacity-bar">
-                    <div
-                      className="capacity-fill"
-                      style={{
-                        width: `${Math.min(100, b.capacityPercent)}%`,
-                        background: b.capacityPercent > 80
-                          ? 'linear-gradient(90deg, #f59e0b, #d97706)'
-                          : b.capacityPercent > 60
-                            ? 'linear-gradient(90deg, #3b82f6, #2563eb)'
-                            : 'linear-gradient(90deg, #22c55e, #16a34a)',
-                      }}
-                    />
+
+                {/* Room-wise Power Consumption */}
+                {house.rooms && house.rooms.length > 0 ? (
+                  <div className="rooms-power-section">
+                    <h4>Power Consumption by Room</h4>
+                    {house.rooms?.map((room) => {
+                      const totalPower = room.devices?.reduce((sum, device) => sum + (device.power || 0), 0) || 0;
+
+                      return (
+                        <div key={room.name} className="room-power-card">
+                          <div className="room-header">
+                            <span className="room-name">{room.name}</span>
+                                                      </div>
+                          <div className="room-power-metrics">
+                            <div className="power-value">
+                              <span className="power-number">{totalPower.toFixed(1)}</span>
+                              <span className="power-unit">W</span>
+                            </div>
+                            <div className="power-bar">
+                              <div
+                                className="power-fill"
+                                style={{
+                                  width: `${Math.min(100, (totalPower / 2000) * 100)}%`,
+                                  background: totalPower > 1500
+                                    ? 'linear-gradient(90deg, #f59e0b, #d97706)'
+                                    : totalPower > 800
+                                      ? 'linear-gradient(90deg, #3b82f6, #2563eb)'
+                                      : 'linear-gradient(90deg, #22c55e, #16a34a)'
+                                }}
+                              />
+                            </div>
+                          </div>
+                          <div className="room-devices">
+                            {room.devices?.slice(0, 3).map((device) => (
+                              <div key={device.id} className={`device-item ${device.status}`}>
+                                <span className="device-name">{device.name}</span>
+                                <span className="device-power">{device.power || 0}W</span>
+                              </div>
+                            ))}
+                            {room.devices?.length > 3 && (
+                              <span className="more-devices">+{room.devices.length - 3} more</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <div className="capacity-meta">
-                    <span>
-                      {b.capacityPercent}% of {b.maxCapacityKw} kW capacity
-                    </span>
-                    <span className="trend">{b.trend}</span>
+                ) : (
+                  <div className="no-rooms-message">
+                    <p>No rooms configured for this home</p>
                   </div>
-                </div>
-                  <div className="summary-footer">
+                )}
+
+                <div className="summary-footer">
                   <span>
-                    {b.totalZones} rooms • {b.totalFloors} floors • {b.totalDevices} devices
+                    {(house.rooms?.length || 0)} rooms • {house.rooms?.reduce((sum, room) => sum + (room.devices?.length || 0), 0) || 0} devices
                   </span>
+                  <div className="total-power">
+                    <span className="total-label">Total Power:</span>
+                    <span className="total-value">
+                      {/* FIX: corrected nested reduce — inner result was previously discarded by misplaced paren + comma operator */}
+                      {(
+                        house.rooms?.reduce((sum, room) =>
+                          sum + (room.devices?.reduce((deviceSum, device) => deviceSum + (device.power || 0), 0)
+                        ), 0).toFixed(1))}W
+                    </span>
+                  </div>
                 </div>
               </div>
             ))}
-            {(!data?.buildings?.length) && (
+            {(!data?.houses?.length) && (
               <div className="building-empty">
                 <p>No homes yet. Add your first home below.</p>
                 <button onClick={() => setIsAddModalOpen(true)}>Add Home</button>

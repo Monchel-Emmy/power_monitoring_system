@@ -13,7 +13,6 @@ const defaultNewBuilding = {
   totalFloors: 1,
   totalZones: 0,
   totalDevices: 0,
-  totalArea: 0,
 };
 
 const defaultRoomRow = () => ({ zoneName: 'Room 1', devicesCount: 0 });
@@ -58,10 +57,6 @@ const BuildingConfigurationPage = () => {
     { buildings: 0, zones: 0, devices: 0 }
   );
 
-  const formatArea = (n) => {
-    const num = Number(n) || 0;
-    return num.toLocaleString() + ' sq ft';
-  };
 
   const getZoneDisplay = (building) => {
     const dist = building.zoneDistribution || [];
@@ -93,7 +88,6 @@ const BuildingConfigurationPage = () => {
         totalFloors: Number(newBuilding.totalFloors) || 1,
         totalZones,
         totalDevices,
-        totalArea: Number(newBuilding.totalArea) || 0,
         zoneDistribution,
       };
       const res = await fetch(`${API_BASE}/api/buildings`, {
@@ -150,7 +144,6 @@ const BuildingConfigurationPage = () => {
         totalFloors: Number(currentBuilding.totalFloors) || 1,
         totalZones,
         totalDevices,
-        totalArea: Number(currentBuilding.totalArea) || 0,
         zoneDistribution,
       };
       const res = await fetch(`${API_BASE}/api/buildings/${currentBuilding._id}`, {
@@ -208,7 +201,6 @@ const BuildingConfigurationPage = () => {
           const { visible, moreCount } = getZoneDisplay(building);
           const zones = building.totalZones ?? building.zones ?? 0;
           const devices = building.totalDevices ?? building.devices ?? 0;
-          const area = building.totalArea ?? building.area ?? 0;
           return (
             <div key={building._id} className="building-card">
               <div className="building-card-header">
@@ -241,10 +233,6 @@ const BuildingConfigurationPage = () => {
                   <FaServer className="metric-icon" />
                   <span className="metric-value">{devices}</span>
                   <span className="metric-label">Devices</span>
-                </div>
-                <div className="metric-card">
-                  <span className="metric-value">{formatArea(area)}</span>
-                  <span className="metric-label">Total Area</span>
                 </div>
               </div>
 
@@ -290,10 +278,6 @@ const BuildingConfigurationPage = () => {
               <option value="maintenance">maintenance</option>
             </select>
           </div>
-          <div className="form-group">
-            <label>Total Area (sq ft)</label>
-            <input type="number" min="0" value={newBuilding.totalArea} onChange={(e) => setNewBuilding({ ...newBuilding, totalArea: e.target.value })} />
-          </div>
           <div className="form-group rooms-list-section">
             <label>Rooms (name and devices per room)</label>
             {newBuildingRooms.map((room, idx) => (
@@ -327,10 +311,6 @@ const BuildingConfigurationPage = () => {
                 <option value="inactive">inactive</option>
                 <option value="maintenance">maintenance</option>
               </select>
-            </div>
-            <div className="form-group">
-              <label>Total Area (sq ft)</label>
-              <input type="number" min="0" value={currentBuilding.totalArea} onChange={(e) => setCurrentBuilding({ ...currentBuilding, totalArea: e.target.value })} />
             </div>
             <div className="form-group rooms-list-section">
               <label>Rooms (name and devices per room)</label>

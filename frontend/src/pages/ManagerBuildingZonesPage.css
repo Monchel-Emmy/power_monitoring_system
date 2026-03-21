@@ -80,6 +80,34 @@
   color: #111827;
 }
 
+.total-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #059669;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.no-rooms-message {
+  text-align: center;
+  padding: 2rem;
+  color: #6b7280;
+  font-size: 1rem;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  margin: 1rem 0;
+}
+
+.power-unit {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #6b7280;
+}
+
 .capacity-bar {
   margin-top: 6px;
   height: 6px;
@@ -98,8 +126,6 @@
   display: flex;
   justify-content: space-between;
   font-size: 0.75rem;
-  color: #6b7280;
-  margin-top: 4px;
 }
 
 .capacity-meta .trend {

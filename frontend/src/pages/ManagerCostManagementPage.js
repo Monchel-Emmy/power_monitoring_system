@@ -5,13 +5,13 @@ import { API_BASE, getAuthHeaders } from '../config';
 const ManagerCostManagementPage = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState('12m');
+  const [timeRange, setTimeRange] = useState('6m');
 
   useEffect(() => {
     setLoading(true);
     const fetchData = async () => {
       try {
-        const range = timeRange === '3y' ? '3y' : '12m';
+        const range = timeRange === '3y' ? '3y' : timeRange === '6m' ? '6m' : '12m';
         const res = await fetch(`${API_BASE}/api/manager/cost-management?range=${range}`, { headers: getAuthHeaders() });
         if (res.ok) {
           const json = await res.json();
@@ -88,6 +88,12 @@ const ManagerCostManagementPage = () => {
           </div>
           <div className="cost-toggle">
             <button
+              className={`cost-btn ${timeRange === '6m' ? 'active' : ''}`}
+              onClick={() => setTimeRange('6m')}
+            >
+              6 Months
+            </button>
+            <button
               className={`cost-btn ${timeRange === '12m' ? 'active' : ''}`}
               onClick={() => setTimeRange('12m')}
             >
@@ -123,6 +129,8 @@ const ManagerCostManagementPage = () => {
                   const heightPct = Math.max(8, Math.min(100, (m.cost / maxCost) * 100));
                   const displayLabel = timeRange === '3y'
                     ? (m.month.split(' ')[0] || '') + ' ' + (m.month.split(' ')[1] || '').slice(-2)
+                    : timeRange === '6m'
+                    ? (m.month.split(' ')[0] || '').slice(0, 3)
                     : (m.month.split(' ')[0] || '').slice(0, 3);
                   return (
                     <div key={i} className="cost-chart-bar-wrap">

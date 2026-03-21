@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Building = require('../models/Building');
+const { logAuditEvent, getClientIP } = require('../utils/auditLogger');
 
 // Get all buildings
 router.get('/', async (req, res) => {
@@ -83,6 +84,16 @@ router.post('/', async (req, res) => {
 
   try {
     const newBuilding = await building.save();
+    // Log building creation
+    const ip = getClientIP(req);
+    await logAuditEvent(
+      'system',
+      'Device Changes',
+      'Building Created',
+      `New building "${building.name}" created at ${building.address} with ${totalZones} zones`,
+      ip,
+      'success'
+    );
     res.status(201).json(newBuilding);
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -120,6 +131,16 @@ const updateBuildingHandler = async (req, res) => {
 
   try {
     const updated = await res.building.save();
+    // Log building update
+    const ip = getClientIP(req);
+    await logAuditEvent(
+      'system',
+      'Device Changes',
+      'Building Updated',
+      `Building "${res.building.name}" updated`,
+      ip,
+      'success'
+    );
     res.json(updated);
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -133,6 +154,16 @@ router.put('/:id', getBuilding, updateBuildingHandler);
 router.delete('/:id', getBuilding, async (req, res) => {
   try {
     await res.building.deleteOne();
+    // Log building deletion
+    const ip = getClientIP(req);
+    await logAuditEvent(
+      'system',
+      'Device Changes',
+      'Building Deleted',
+      `Building "${res.building.name}" at ${res.building.address} was deleted`,
+      ip,
+      'warning'
+    );
     res.json({ message: 'Deleted Building' });
   } catch (err) {
     res.status(500).json({ message: err.message });

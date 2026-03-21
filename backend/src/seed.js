@@ -7,6 +7,7 @@ const Device = require('./models/Device');
 const AuditLog = require('./models/AuditLog');
 const SensorReading = require('./models/SensorReading');
 const Alert = require('./models/Alert');
+const Report = require('./models/Report');
 
 dotenv.config();
 
@@ -186,6 +187,30 @@ const seedDB = async () => {
     await SensorReading.insertMany(sensorReadings);
     console.log('Sensor readings (IoT power meter demo) seeded:', sensorReadings.length);
 
+    // Add some recent sensor readings for custom date range testing
+    const recentReadings = [];
+    for (let day = 0; day < 7; day++) {
+      for (let hour = 0; hour < 24; hour += 4) {
+        const ts = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day, hour, 0, 0);
+        devices.forEach((device, idx) => {
+          const basePower = device.name.includes('AC') ? 1500 : device.name.includes('Fridge') ? 150 : device.name.includes('TV') ? 120 : 80;
+          const powerKw = basePower + (Math.random() - 0.5) * 40;
+          const voltage = 220 + (Math.random() - 0.5) * 10;
+          const current = powerKw / voltage;
+          
+          recentReadings.push({
+            device: device._id,
+            timestamp: ts,
+            powerConsumption: powerKw,
+            voltage,
+            current,
+          });
+        });
+      }
+    }
+    await SensorReading.insertMany(recentReadings);
+    console.log('Recent sensor readings for custom ranges seeded:', recentReadings.length);
+
     // 6) Seed alerts
     await Alert.deleteMany({});
     const devicesForAlerts = await Device.find().lean();
@@ -246,8 +271,41 @@ const seedDB = async () => {
     await Alert.insertMany(alertsData);
     console.log('Alerts seeded:', alertsData.length);
 
+    // Seed some sample reports
+    const reportsData = [
+      {
+        name: 'Monthly Energy Summary',
+        period: 'Last 30 Days',
+        type: 'Energy Usage',
+        size: '1.2 MB',
+        category: 'Energy Usage',
+        generatedBy: 'sarah.manager@example.com',
+        generatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+      },
+      {
+        name: 'Cost Analysis Report',
+        period: 'Last Quarter',
+        type: 'Cost',
+        size: '890 KB',
+        category: 'Cost',
+        generatedBy: 'sarah.manager@example.com',
+        generatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+      },
+      {
+        name: 'Home Comparison Report',
+        period: 'This Year',
+        type: 'Energy Usage',
+        size: '2.1 MB',
+        category: 'Energy Usage',
+        generatedBy: 'bob.johnson@example.com',
+        generatedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
+      },
+    ];
+    await Report.insertMany(reportsData);
+    console.log('Reports seeded:', reportsData.length);
+
     await mongoose.connection.close();
-    console.log('Seed done. Users, Buildings, Devices, Audit log, Sensor readings, Alerts ready.');
+    console.log('Seed done. Users, Buildings, Devices, Audit log, Sensor readings, Alerts, Reports ready.');
     process.exit(0);
   } catch (err) {
     console.error('Seed error:', err);

@@ -10,7 +10,6 @@ import DashboardLayout from './components/DashboardLayout';
 import ManagerLayout from './components/ManagerLayout';
 import DeviceManagementPage from './pages/DeviceManagementPage';
 import BuildingConfigurationPage from './pages/BuildingConfigurationPage';
-import SystemConfigurationPage from './pages/SystemConfigurationPage';
 import AuditLogPage from './pages/AuditLogPage';
 import ManagerLiveMonitoringPage from './pages/ManagerLiveMonitoringPage';
 import ManagerPredictiveAnalyticsPage from './pages/ManagerPredictiveAnalyticsPage';
@@ -30,12 +29,10 @@ function AppRoutes() {
 
       <Route path="/" element={<ProtectedRoute requiredRole="admin"><DashboardLayout /></ProtectedRoute>}>
         <Route index element={<DashboardPage />} />
-        <Route path="system-overview" element={<DashboardPage />} />
-        <Route path="user-management" element={<UserManagementPage />} />
+                <Route path="user-management" element={<UserManagementPage />} />
         <Route path="device-management" element={<DeviceManagementPage />} />
         <Route path="building-configuration" element={<BuildingConfigurationPage />} />
-        <Route path="system-configuration" element={<SystemConfigurationPage />} />
-        <Route path="audit-log" element={<AuditLogPage />} />
+                <Route path="audit-log" element={<AuditLogPage />} />
         <Route path="sensor-simulator" element={<SensorSimulatorPage />} />
       </Route>
 

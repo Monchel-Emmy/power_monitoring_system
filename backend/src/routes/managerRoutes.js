@@ -3,6 +3,7 @@ const router = express.Router();
 const SensorReading = require('../models/SensorReading');
 const Device = require('../models/Device');
 const Building = require('../models/Building');
+const Report = require('../models/Report');
 const { generatePredictions } = require('../services/predictiveAnalytics');
 const { getAllowedBuildingIds } = require('../middleware/managerAuth');
 const { costFrwResidential } = require('../utils/tariff');
@@ -838,7 +839,8 @@ router.get('/cost-management', async (req, res) => {
     const MONTHLY_BUDGET_FRW = 200000;
     const rangeParam = (req.query.range || '12m').toLowerCase();
     const is3Year = rangeParam === '3y' || rangeParam === '36';
-    const timeRange = is3Year ? '3y' : '12m';
+    const is6Month = rangeParam === '6m' || rangeParam === '6';
+    const timeRange = is3Year ? '3y' : is6Month ? '6m' : '12m';
 
     const buildings = await getBuildingsForManager(req);
     const [devices, readingsThisMonth, readingsLastMonth] = await Promise.all([
@@ -897,8 +899,8 @@ router.get('/cost-management', async (req, res) => {
 
     const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     
-    // Calculate real monthly costs from historical sensor readings (12 months or 36 for 3-year view)
-    const monthsToFetch = is3Year ? 36 : 12;
+    // Calculate real monthly costs from historical sensor readings (6 months, 12 months, or 36 for 3-year view)
+    const monthsToFetch = is3Year ? 36 : is6Month ? 6 : 12;
     const startDate = new Date(now.getFullYear(), now.getMonth() - (monthsToFetch - 1), 1);
     startDate.setHours(0, 0, 0, 0);
     
@@ -978,91 +980,76 @@ router.get('/cost-management', async (req, res) => {
 // GET reports list
 router.get('/reports', async (req, res) => {
   try {
-    const now = new Date();
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const currentMonth = monthNames[now.getMonth()];
-    const currentYear = now.getFullYear();
-    const quarter = Math.floor(now.getMonth() / 3) + 1;
-
-    const reports = [
-      {
-        id: 1,
-        name: 'Monthly Energy Summary',
-        period: `${currentMonth} ${currentYear}`,
-        type: 'PDF',
-        size: '2.1 MB',
-        category: 'Energy Usage',
-        generatedAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: 2,
-        name: 'Home Comparison Report',
-        period: `Q${quarter} ${currentYear}`,
-        type: 'XLSX',
-        size: '640 KB',
-        category: 'Energy Usage',
-        generatedAt: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: 4,
-        name: 'Cost Analysis Report',
-        period: `${currentMonth} ${currentYear}`,
-        type: 'PDF',
-        size: '1.5 MB',
-        category: 'Cost',
-        generatedAt: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: 5,
-        name: 'Device Performance Report',
-        period: `Q${quarter} ${currentYear}`,
-        type: 'XLSX',
-        size: '890 KB',
-        category: 'Energy Usage',
-        generatedAt: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000),
-      },
-    ];
-
     const { period, category } = req.query;
-    let filteredReports = reports;
-
+    const now = new Date();
+    const quarter = Math.floor(now.getMonth() / 3) + 1;
+    
+    // Get manager identifier (you might want to get this from auth middleware)
+    const managerId = req.user?.email || req.user?.id || 'manager@example.com';
+    
+    // Build query
+    let query = { generatedBy: managerId };
+    
+    // Apply period filter
     if (period && period !== 'All') {
       if (period === 'Last 30 Days') {
         const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        filteredReports = filteredReports.filter((r) => r.generatedAt >= thirtyDaysAgo);
+        query.generatedAt = { ...query.generatedAt, $gte: thirtyDaysAgo };
       } else if (period === 'Last Quarter') {
         const quarterStart = new Date(now.getFullYear(), (quarter - 1) * 3, 1);
-        filteredReports = filteredReports.filter((r) => r.generatedAt >= quarterStart);
+        query.generatedAt = { ...query.generatedAt, $gte: quarterStart };
       } else if (period === 'This Year') {
         const yearStart = new Date(now.getFullYear(), 0, 1);
-        filteredReports = filteredReports.filter((r) => r.generatedAt >= yearStart);
+        query.generatedAt = { ...query.generatedAt, $gte: yearStart };
       }
     }
-
+    
+    // Apply category filter
     if (category && category !== 'All Report Types') {
-      filteredReports = filteredReports.filter((r) => r.category === category);
+      query.category = category;
     }
 
+    const reports = await Report.find(query)
+      .sort({ generatedAt: -1 })
+      .lean();
+
     res.json({
-      reports: filteredReports,
-      total: filteredReports.length,
+      reports: reports.map(report => ({
+        ...report,
+        id: report._id.toString(),
+      })),
+      total: reports.length,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// GET report export (CSV - opens in Excel)
+// GET report export (CSV only)
 router.get('/reports/export', async (req, res) => {
   try {
-    const { name, period, category } = req.query;
+    const { name, period, category, startDate, endDate } = req.query;
     const now = new Date();
-    const days30 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    let dateFilter;
+
+    if (period === 'Custom' && startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate + 'T23:59:59.999Z');
+      console.log('Custom date range:', { start, end, startDate, endDate });
+      dateFilter = { 
+        timestamp: { 
+          $gte: start, 
+          $lte: end 
+        } 
+      };
+    } else {
+      const days30 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      dateFilter = { timestamp: { $gte: days30 } };
+    }
 
     const buildings = await getBuildingsForManager(req);
     const [readings, devices] = await Promise.all([
-      SensorReading.find({ timestamp: { $gte: days30 } }).populate('device', 'location').lean(),
+      SensorReading.find(dateFilter).populate('device', 'location').lean(),
       Device.find().lean(),
     ]);
 
@@ -1115,26 +1102,40 @@ router.get('/reports/export', async (req, res) => {
 // POST generate new report
 router.post('/reports/generate', async (req, res) => {
   try {
-    const { reportType, period, format } = req.body;
+    const { reportType, period, startDate, endDate } = req.body;
     const now = new Date();
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     
-    const reportName = `${reportType} Report - ${period}`;
-    const fileSize = format === 'PDF' ? `${(1.5 + Math.random() * 1.0).toFixed(1)} MB` : `${(600 + Math.random() * 400).toFixed(0)} KB`;
+    let reportName = `${reportType} Report - ${period}`;
+    if (period === 'Custom' && startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      reportName = `${reportType} Report - ${start.toLocaleDateString()} to ${end.toLocaleDateString()}`;
+    }
+    const fileSize = `${(600 + Math.random() * 400).toFixed(0)} KB`;
     
-    const newReport = {
-      id: Date.now(),
+    // Get manager identifier
+    const managerId = req.user?.email || req.user?.id || 'manager@example.com';
+    
+    const newReport = new Report({
       name: reportName,
       period,
-      type: format || 'PDF',
+      type: reportType,
       size: fileSize,
       category: reportType,
-      generatedAt: new Date(),
-    };
+      startDate: startDate ? new Date(startDate) : null,
+      endDate: endDate ? new Date(endDate) : null,
+      generatedBy: managerId,
+    });
+
+    const savedReport = await newReport.save();
 
     res.status(201).json({
       message: 'Report generated successfully',
-      report: newReport,
+      report: {
+        ...savedReport.toObject(),
+        id: savedReport._id.toString(),
+      },
     });
   } catch (err) {
     res.status(500).json({ message: err.message });

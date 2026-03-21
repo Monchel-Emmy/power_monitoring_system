@@ -67,7 +67,7 @@ const ManagerAnalyticsTrendsPage = () => {
     <div className="manager-page manager-analytics-page">
       <header className="predict-section-header">
         <div>
-          <h1>Past consumption</h1>
+          <h1>Past Consumption</h1>
           <p className="section-desc">See how much energy your homes used. Choose a period below.</p>
         </div>
         <select

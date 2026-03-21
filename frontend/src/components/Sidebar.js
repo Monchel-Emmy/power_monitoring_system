@@ -10,12 +10,10 @@ function Sidebar() {
         <span className="sidebar-section-subtitle">System Control Panel</span>
       </div>
       <ul className="sidebar-menu">
-        <li><NavLink to="/system-overview" end>Admin Control Panel</NavLink></li>
-        <li><NavLink to="/system-overview">System Overview</NavLink></li>
+        <li><NavLink to="/" end>Admin Control Panel</NavLink></li>
         <li><NavLink to="/user-management">User Management</NavLink></li>
         <li><NavLink to="/device-management">Device Management</NavLink></li>
         <li><NavLink to="/building-configuration">Building Configuration</NavLink></li>
-        <li><NavLink to="/system-configuration">System Configuration</NavLink></li>
         <li><NavLink to="/audit-log">Audit Log</NavLink></li>
         <li><NavLink to="/sensor-simulator">Sensor Simulator</NavLink></li>
       </ul>

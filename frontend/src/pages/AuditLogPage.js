@@ -43,8 +43,7 @@ const AuditLogPage = () => {
       !term ||
       (event.user || '').toLowerCase().includes(term) ||
       (event.action || '').toLowerCase().includes(term) ||
-      (event.details || '').toLowerCase().includes(term) ||
-      (event.ip || '').toLowerCase().includes(term);
+      (event.details || '').toLowerCase().includes(term);
     return matchesCategory && matchesSearch;
   });
 
@@ -55,14 +54,13 @@ const AuditLogPage = () => {
 
   const handleExport = () => {
     if (filteredEvents.length === 0) return;
-    const headers = ['Timestamp', 'User', 'Category', 'Action', 'Details', 'IP', 'Status'];
+    const headers = ['Timestamp', 'User', 'Category', 'Action', 'Details', 'Status'];
     const rows = filteredEvents.map((e) => [
       e.timestamp || '',
       e.user || '',
       e.category || '',
       e.action || '',
       (e.details || '').replace(/"/g, '""'),
-      e.ip || '',
       e.status || '',
     ]);
     const csv = [headers.join(','), ...rows.map((r) => r.map((c) => `"${c}"`).join(','))].join('\n');
@@ -143,7 +141,6 @@ const AuditLogPage = () => {
               <th>User</th>
               <th>Action</th>
               <th>Details</th>
-              <th>IP Address</th>
               <th>Status</th>
             </tr>
           </thead>
@@ -157,7 +154,6 @@ const AuditLogPage = () => {
                   {event.action}
                 </td>
                 <td>{event.details}</td>
-                <td>{event.ip}</td>
                 <td>
                   <span className={`status-pill ${(event.status || 'success').toLowerCase()}`}>
                     {event.status}

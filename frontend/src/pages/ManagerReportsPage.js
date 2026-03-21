@@ -12,7 +12,8 @@ const ManagerReportsPage = () => {
   const [newReport, setNewReport] = useState({
     reportType: 'Energy Usage',
     period: 'Last 30 Days',
-    format: 'PDF',
+    startDate: '',
+    endDate: '',
   });
 
   const fetchReports = useCallback(async () => {
@@ -48,7 +49,7 @@ const ManagerReportsPage = () => {
         const json = await res.json();
         setReports([json.report, ...reports]);
         setShowGenerateModal(false);
-        setNewReport({ reportType: 'Energy Usage', period: 'Last 30 Days', format: 'PDF' });
+        setNewReport({ reportType: 'Energy Usage', period: 'Last 30 Days', startDate: '', endDate: '' });
       }
     } catch (err) {
       console.error('Failed to generate report', err);
@@ -61,9 +62,12 @@ const ManagerReportsPage = () => {
         name: report.name,
         period: report.period,
         category: report.category || '',
+        startDate: report.startDate ? new Date(report.startDate).toISOString().split('T')[0] : '',
+        endDate: report.endDate ? new Date(report.endDate).toISOString().split('T')[0] : '',
       });
       const res = await fetch(`${API_BASE}/api/manager/reports/export?${params}`, { headers: getAuthHeaders() });
       if (!res.ok) throw new Error('Export failed');
+      
       const text = await res.text();
       const blob = new Blob([text], { type: 'text/csv;charset=utf-8' });
       const url = window.URL.createObjectURL(blob);
@@ -177,17 +181,29 @@ const ManagerReportsPage = () => {
                   <option value="Custom">Custom Range</option>
                 </select>
               </label>
-              <label>
-                Format
-                <select
-                  value={newReport.format}
-                  onChange={(e) => setNewReport({ ...newReport, format: e.target.value })}
-                >
-                  <option value="PDF">PDF</option>
-                  <option value="XLSX">Excel (XLSX)</option>
-                  <option value="CSV">CSV</option>
-                </select>
-              </label>
+              {newReport.period === 'Custom' && (
+                <>
+                  <label>
+                    Start Date
+                    <input
+                      type="date"
+                      value={newReport.startDate}
+                      onChange={(e) => setNewReport({ ...newReport, startDate: e.target.value })}
+                      max={new Date().toISOString().split('T')[0]}
+                    />
+                  </label>
+                  <label>
+                    End Date
+                    <input
+                      type="date"
+                      value={newReport.endDate}
+                      onChange={(e) => setNewReport({ ...newReport, endDate: e.target.value })}
+                      max={new Date().toISOString().split('T')[0]}
+                      min={newReport.startDate}
+                    />
+                  </label>
+                </>
+              )}
             </div>
             <div className="modal-actions">
               <button className="modal-btn-cancel" onClick={() => setShowGenerateModal(false)}>

@@ -89,6 +89,28 @@
   color: #166534;
 }
 
+.report-format-badge {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.report-format-badge.format-pdf {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.report-format-badge.format-xlsx {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.report-format-badge.format-csv {
+  background-color: #f3e8ff;
+  color: #6b21a8;
+}
+
 .reports-loading,
 .reports-empty {
   padding: 40px 20px;
@@ -137,12 +159,17 @@
   color: #374151;
 }
 
-.modal-form select {
+.modal-form select,
+.modal-form input {
   padding: 8px 12px;
   border-radius: 8px;
   border: 1px solid #d1d5db;
   background-color: #ffffff;
   font-size: 0.9rem;
+}
+
+.modal-form input[type="date"] {
+  color: #374151;
 }
 
 .modal-actions {

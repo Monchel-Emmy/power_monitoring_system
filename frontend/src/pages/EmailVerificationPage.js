@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import { API_BASE } from '../config';
@@ -36,7 +36,7 @@ function EmailVerificationPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: email.trim(),
-          code: verificationCode.trim(),
+          code: code.trim(),
         }),
       });
       const data = await res.json().catch(() => ({}));

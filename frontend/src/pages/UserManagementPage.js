@@ -11,6 +11,8 @@ const UserManagementPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('All');
   const [filterStatus, setFilterStatus] = useState('All');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [usersPerPage] = useState(5);
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
   const [newUser, setNewUser] = useState({
     name: '',
@@ -71,6 +73,14 @@ const UserManagementPage = () => {
     const matchesStatus = filterStatus === 'All' || (user.status || '').toLowerCase() === filterStatus.toLowerCase();
     return matchesSearch && matchesRole && matchesStatus;
   });
+
+  // Pagination logic
+  const indexOfLastUser = currentPage * usersPerPage;
+  const indexOfFirstUser = indexOfLastUser - usersPerPage;
+  const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
+  const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
+
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
   const toggleBuildingAdd = (buildingName) => {
     const next = newUser.buildings.includes(buildingName)
@@ -245,7 +255,7 @@ const UserManagementPage = () => {
             </tr>
           </thead>
           <tbody>
-            {filteredUsers.map(user => (
+            {currentUsers.map(user => (
               <tr key={user._id || user.id}>
                 <td>{user.username || user.name}</td>
                 <td>{user.email}</td>
@@ -262,8 +272,43 @@ const UserManagementPage = () => {
             ))}
           </tbody>
         </table>
-        {filteredUsers.length === 0 && <p className="no-users-found">No users found matching your criteria.</p>}
+        {currentUsers.length === 0 && <p className="no-users-found">No users found matching your criteria.</p>}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="pagination-container">
+          <div className="pagination-info">
+            Showing {indexOfFirstUser + 1} to {Math.min(indexOfLastUser, filteredUsers.length)} of {filteredUsers.length} users
+          </div>
+          <div className="pagination-controls">
+            <button 
+              className="pagination-btn" 
+              onClick={() => paginate(currentPage - 1)} 
+              disabled={currentPage === 1}
+            >
+              Previous
+            </button>
+            {[...Array(totalPages)].map((_, index) => (
+              <button
+                key={index + 1}
+                className={`pagination-btn ${currentPage === index + 1 ? 'active' : ''}`}
+                onClick={() => paginate(index + 1)}
+              >
+                {index + 1}
+              </button>
+            ))}
+            <button 
+              className="pagination-btn" 
+              onClick={() => paginate(currentPage + 1)} 
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Render add user modal */}
       <Modal
         show={isAddUserModalOpen}
@@ -272,159 +317,159 @@ const UserManagementPage = () => {
         onSubmit={handleAddUserSubmit}
       >
         <div className="user-form-fields">
+      <div className="form-group">
+        <label>Name</label>
+        <input
+          type="text"
+          value={newUser.name}
+          onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+          placeholder="Enter full name"
+          required
+        />
+      </div>
+      <div className="form-group">
+        <label>Email</label>
+        <input
+          type="email"
+          value={newUser.email}
+          onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+          placeholder="user@example.com"
+          required
+        />
+      </div>
+      <div className="form-group">
+        <label>Password</label>
+        <input
+          type="password"
+          value={newUser.password}
+          onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+          placeholder="••••••••"
+          required
+        />
+      </div>
+      <div className="form-row">
+        <div className="form-group">
+          <label>Role</label>
+          <select
+            value={newUser.role}
+            onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+          >
+            <option value="User">User</option>
+            <option value="Manager">Manager</option>
+            <option value="Administrator">Administrator</option>
+          </select>
+        </div>
+        <div className="form-group">
+          <label>Status</label>
+          <select
+            value={newUser.status}
+            onChange={(e) => setNewUser({ ...newUser, status: e.target.value })}
+          >
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+          </select>
+        </div>
+      </div>
+      <div className="form-group form-group-buildings">
+        <label>Assigned homes</label>
+        <p className="form-hint">For managers: only these homes will be visible. Select homes this manager can access.</p>
+        <div className="buildings-checkbox-group">
+          {buildingsList.length === 0 ? (
+            <p className="buildings-empty">No buildings in system. Add buildings first.</p>
+          ) : (
+            buildingsList.map((b) => (
+              <label key={b._id} className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={newUser.buildings.includes(b.name)}
+                  onChange={() => toggleBuildingAdd(b.name)}
+                />
+                <span className="checkbox-text">{b.name}</span>
+              </label>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  </Modal>
+
+  {/* Render edit user modal */}
+  {currentUser && (
+    <Modal
+      show={isEditUserModalOpen}
+      onClose={() => { setIsEditUserModalOpen(false); setCurrentUser(null); }}
+      title="Edit User"
+      onSubmit={handleEditUserSubmit}
+    >
+      <div className="user-form-fields">
+        <div className="form-group">
+          <label>Name</label>
+          <input
+            type="text"
+            value={currentUser.username || currentUser.name || ''}
+            onChange={(e) => setCurrentUser({ ...currentUser, username: e.target.value })}
+            placeholder="Enter full name"
+            required
+          />
+        </div>
+        <div className="form-group">
+          <label>Email</label>
+          <input
+            type="email"
+            value={currentUser.email}
+            onChange={(e) => setCurrentUser({ ...currentUser, email: e.target.value })}
+            placeholder="user@example.com"
+            required
+          />
+        </div>
+        <div className="form-row">
           <div className="form-group">
-            <label>Name</label>
-            <input
-              type="text"
-              value={newUser.name}
-              onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-              placeholder="Enter full name"
-              required
-            />
+            <label>Role</label>
+            <select
+              value={(currentUser.role || '').toLowerCase()}
+              onChange={(e) => setCurrentUser({ ...currentUser, role: e.target.value })}
+            >
+              <option value="user">User</option>
+              <option value="manager">Manager</option>
+              <option value="admin">Administrator</option>
+            </select>
           </div>
           <div className="form-group">
-            <label>Email</label>
-            <input
-              type="email"
-              value={newUser.email}
-              onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-              placeholder="user@example.com"
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label>Password</label>
-            <input
-              type="password"
-              value={newUser.password}
-              onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-              placeholder="••••••••"
-              required
-            />
-          </div>
-          <div className="form-row">
-            <div className="form-group">
-              <label>Role</label>
-              <select
-                value={newUser.role}
-                onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-              >
-                <option value="User">User</option>
-                <option value="Manager">Manager</option>
-                <option value="Administrator">Administrator</option>
-              </select>
-            </div>
-            <div className="form-group">
-              <label>Status</label>
-              <select
-                value={newUser.status}
-                onChange={(e) => setNewUser({ ...newUser, status: e.target.value })}
-              >
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-              </select>
-            </div>
-          </div>
-          <div className="form-group form-group-buildings">
-            <label>Assigned homes</label>
-            <p className="form-hint">For managers: only these homes will be visible. Select homes this manager can access.</p>
-            <div className="buildings-checkbox-group">
-              {buildingsList.length === 0 ? (
-                <p className="buildings-empty">No buildings in system. Add buildings first.</p>
-              ) : (
-                buildingsList.map((b) => (
-                  <label key={b._id} className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={newUser.buildings.includes(b.name)}
-                      onChange={() => toggleBuildingAdd(b.name)}
-                    />
-                    <span className="checkbox-text">{b.name}</span>
-                  </label>
-                ))
-              )}
-            </div>
+            <label>Status</label>
+            <select
+              value={currentUser.status}
+              onChange={(e) => setCurrentUser({ ...currentUser, status: e.target.value })}
+            >
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
           </div>
         </div>
-      </Modal>
-
-      {/* Render edit user modal */}
-      {currentUser && (
-        <Modal
-          show={isEditUserModalOpen}
-          onClose={() => { setIsEditUserModalOpen(false); setCurrentUser(null); }}
-          title="Edit User"
-          onSubmit={handleEditUserSubmit}
-        >
-          <div className="user-form-fields">
-            <div className="form-group">
-              <label>Name</label>
-              <input
-                type="text"
-                value={currentUser.username || currentUser.name || ''}
-                onChange={(e) => setCurrentUser({ ...currentUser, username: e.target.value })}
-                placeholder="Enter full name"
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label>Email</label>
-              <input
-                type="email"
-                value={currentUser.email}
-                onChange={(e) => setCurrentUser({ ...currentUser, email: e.target.value })}
-                placeholder="user@example.com"
-                required
-              />
-            </div>
-            <div className="form-row">
-              <div className="form-group">
-                <label>Role</label>
-                <select
-                  value={(currentUser.role || '').toLowerCase()}
-                  onChange={(e) => setCurrentUser({ ...currentUser, role: e.target.value })}
-                >
-                  <option value="user">User</option>
-                  <option value="manager">Manager</option>
-                  <option value="admin">Administrator</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Status</label>
-                <select
-                  value={currentUser.status}
-                  onChange={(e) => setCurrentUser({ ...currentUser, status: e.target.value })}
-                >
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
-                </select>
-              </div>
-            </div>
-            <div className="form-group form-group-buildings">
-              <label>Assigned homes</label>
-              <p className="form-hint">For managers: only these homes will be visible. Select homes this user can access.</p>
-              <div className="buildings-checkbox-group">
-                {buildingsList.length === 0 ? (
-                  <p className="buildings-empty">No buildings in system.</p>
-                ) : (
-                  buildingsList.map((b) => (
-                    <label key={b._id} className="checkbox-label">
-                      <input
-                        type="checkbox"
-                        checked={(currentUser.buildings || []).includes(b.name)}
-                        onChange={() => toggleBuildingEdit(b.name)}
-                      />
-                      <span className="checkbox-text">{b.name}</span>
-                    </label>
-                  ))
-                )}
-              </div>
-            </div>
+        <div className="form-group form-group-buildings">
+          <label>Assigned homes</label>
+          <p className="form-hint">For managers: only these homes will be visible. Select homes this user can access.</p>
+          <div className="buildings-checkbox-group">
+            {buildingsList.length === 0 ? (
+              <p className="buildings-empty">No buildings in system.</p>
+            ) : (
+              buildingsList.map((b) => (
+                <label key={b._id} className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={(currentUser.buildings || []).includes(b.name)}
+                    onChange={() => toggleBuildingEdit(b.name)}
+                  />
+                  <span className="checkbox-text">{b.name}</span>
+                </label>
+              ))
+            )}
           </div>
-        </Modal>
-      )}
-    </div>
-  );
+        </div>
+      </div>
+    </Modal>
+  )}
+</div>
+);
 };
 
 export default UserManagementPage;

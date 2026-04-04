@@ -60,10 +60,14 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Update a device by id
+// Update a device by id — triggers offline alert if status changes to Offline
 router.put('/:id', async (req, res) => {
   try {
     const { name, type, location, lastSync, dataRate, battery, status } = req.body;
+
+    // Fetch current device to detect status change
+    const existing = await Device.findOne({ id: req.params.id }).lean();
+
     const update = {};
     if (name !== undefined) update.name = name.trim();
     if (type !== undefined) update.type = type;
@@ -78,11 +82,53 @@ router.put('/:id', async (req, res) => {
       { $set: update },
       { new: true }
     );
-    if (device) {
-      res.json(device);
-    } else {
-      res.status(404).json({ message: 'Device not found' });
+
+    if (!device) return res.status(404).json({ message: 'Device not found' });
+
+    // Fire offline alert if status just changed to Offline
+    if (status === 'Offline' && existing?.status !== 'Offline') {
+      try {
+        const SystemConfig = require('../models/SystemConfig');
+        const Alert = require('../models/Alert');
+        const User = require('../models/User');
+        const { sendAlertEmail } = require('../utils/emailService');
+
+        const locationStr = device.location || '';
+        const locationParts = locationStr.split(' - ');
+        const buildingName = locationParts[0]?.trim() || locationStr || 'Unknown';
+        const roomName = locationParts[1]?.trim() || '';
+
+        const alert = await Alert.create({
+          building: buildingName,
+          device: device._id,
+          type: 'Device Offline',
+          severity: 'High',
+          message: `Device "${device.name}" in ${locationStr || buildingName} has gone offline.`,
+          timestamp: new Date(),
+          status: 'Open',
+        });
+
+        console.log(`[Alert] Device Offline — "${device.name}" | Alert ID: ${alert._id}`);
+
+        const config = await SystemConfig.findOne({ id: 'default' }).lean();
+        if (config?.alerts?.emailEnabled !== false) {
+          const managers = await User.find({ role: { $in: ['admin', 'manager'] }, status: 'active' }).select('email').lean();
+          console.log(`[Alert] Sending offline email to ${managers.length} manager(s)`);
+          for (const mgr of managers) {
+            if (mgr.email) {
+              sendAlertEmail(mgr.email, {
+                ...alert.toObject(),
+                device: { name: device.name, location: locationStr, building: buildingName, room: roomName, type: device.type, status: 'Offline' },
+              }).catch((e) => console.error('[Alert] Offline email failed:', e));
+            }
+          }
+        }
+      } catch (alertErr) {
+        console.error('[Alert] Offline alert failed (non-fatal):', alertErr.message);
+      }
     }
+
+    res.json(device);
   } catch (err) {
     res.status(400).json({ message: err.message });
   }

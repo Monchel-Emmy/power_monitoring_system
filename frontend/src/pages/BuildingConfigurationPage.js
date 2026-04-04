@@ -1,33 +1,47 @@
 import React, { useEffect, useState } from 'react';
 import './BuildingConfigurationPage.css';
-import { FaPlus, FaBuilding, FaMapMarkerAlt, FaEdit, FaThLarge, FaServer, FaTrash } from 'react-icons/fa';
+import {
+  FaPlus,
+  FaBuilding,
+  FaMapMarkerAlt,
+  FaEdit,
+  FaThLarge,
+  FaServer,
+  FaTrash,
+} from 'react-icons/fa';
 import Modal from '../components/Modal';
-
 import { API_BASE } from '../config';
-const ZONES_VISIBLE = 10;
+
+const ZONES_VISIBLE = 6;
 
 const defaultNewBuilding = {
   name: '',
   address: '',
   status: 'active',
   totalFloors: 1,
-  totalZones: 0,
-  totalDevices: 0,
 };
 
-const defaultRoomRow = () => ({ zoneName: 'Room 1', devicesCount: 0 });
+const defaultRoomRow = () => ({
+  zoneName: 'Room 1',
+  devicesCount: 0,
+});
 
 const BuildingConfigurationPage = () => {
   const [buildings, setBuildings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [addError, setAddError] = useState(null);
   const [newBuilding, setNewBuilding] = useState({ ...defaultNewBuilding });
   const [newBuildingRooms, setNewBuildingRooms] = useState([defaultRoomRow()]);
+
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editError, setEditError] = useState(null);
   const [currentBuilding, setCurrentBuilding] = useState(null);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const buildingsPerPage = 5;
 
   useEffect(() => {
     fetchBuildings();
@@ -38,132 +52,130 @@ const BuildingConfigurationPage = () => {
       const res = await fetch(`${API_BASE}/api/buildings`);
       const data = await res.json();
       setBuildings(Array.isArray(data) ? data : []);
-      setError(null);
     } catch (err) {
       setError('Failed to fetch buildings.');
-      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
+  // TOTALS
   const totals = buildings.reduce(
     (acc, b) => {
       acc.buildings += 1;
-      acc.zones += b.totalZones || b.zones || 0;
-      acc.devices += b.totalDevices || b.devices || 0;
+      acc.zones += b.totalZones || 0;
+      acc.devices += b.totalDevices || 0;
       return acc;
     },
     { buildings: 0, zones: 0, devices: 0 }
   );
 
-
+  // ZONE DISPLAY
   const getZoneDisplay = (building) => {
     const dist = building.zoneDistribution || [];
-    const visible = dist.slice(0, ZONES_VISIBLE);
-    const moreCount = Math.max(0, dist.length - ZONES_VISIBLE);
-    return { visible, moreCount };
+    return {
+      visible: dist.slice(0, ZONES_VISIBLE),
+      moreCount: Math.max(0, dist.length - ZONES_VISIBLE),
+    };
   };
 
+  // PAGINATION
+  const indexOfLast = currentPage * buildingsPerPage;
+  const indexOfFirst = indexOfLast - buildingsPerPage;
+  const currentBuildings = buildings.slice(indexOfFirst, indexOfLast);
+  const totalPages = Math.ceil(buildings.length / buildingsPerPage);
+
+  const paginate = (page) => setCurrentPage(page);
+
+  // ADD BUILDING
   const handleAddSubmit = async () => {
     setAddError(null);
-    const name = newBuilding.name.trim();
-    const address = newBuilding.address.trim();
-    if (!name || !address) {
+
+    if (!newBuilding.name.trim() || !newBuilding.address.trim()) {
       setAddError('Name and Address are required.');
-      throw new Error('Validation failed');
+      return;
     }
+
     const zoneDistribution = newBuildingRooms.map((r) => ({
-      zoneName: (r.zoneName || '').trim() || 'Room',
-      devicesCount: Math.max(0, Number(r.devicesCount) || 0),
-      area: 0,
+      zoneName: r.zoneName,
+      devicesCount: Number(r.devicesCount) || 0,
     }));
-    const totalZones = zoneDistribution.length;
-    const totalDevices = zoneDistribution.reduce((s, z) => s + (z.devicesCount || 0), 0);
-    try {
-      const payload = {
-        name,
-        address,
-        status: newBuilding.status,
-        totalFloors: Number(newBuilding.totalFloors) || 1,
-        totalZones,
-        totalDevices,
-        zoneDistribution,
-      };
-      const res = await fetch(`${API_BASE}/api/buildings`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const msg = data.message || `Request failed (${res.status})`;
-        setAddError(msg);
-        throw new Error(msg);
-      }
-      setBuildings((prev) => [...prev, data]);
-      setIsAddModalOpen(false);
-      setNewBuilding({ ...defaultNewBuilding });
-      setNewBuildingRooms([defaultRoomRow()]);
-    } catch (err) {
-      setAddError(err.message || 'Could not add home. Check the server and try again.');
-      throw err;
+
+    const payload = {
+      ...newBuilding,
+      totalZones: zoneDistribution.length,
+      totalDevices: zoneDistribution.reduce((s, z) => s + z.devicesCount, 0),
+      zoneDistribution,
+    };
+
+    const res = await fetch(`${API_BASE}/api/buildings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      setAddError(data.message || 'Error adding building');
+      return;
     }
+
+    setBuildings((prev) => [...prev, data]);
+    setIsAddModalOpen(false);
+    setNewBuilding({ ...defaultNewBuilding });
+    setNewBuildingRooms([defaultRoomRow()]);
   };
 
+  // OPEN EDIT
   const handleEditBuilding = (building) => {
-    const dist = building.zoneDistribution || [];
     setCurrentBuilding({
       ...building,
-      zoneDistribution: dist.length ? dist.map((z) => ({ zoneName: z.zoneName || 'Room', devicesCount: z.devicesCount ?? 0, area: z.area ?? 0 })) : [{ zoneName: 'Room 1', devicesCount: 0 }],
+      zoneDistribution: building.zoneDistribution || [],
     });
     setIsEditModalOpen(true);
   };
 
+  // EDIT BUILDING
   const handleEditSubmit = async () => {
     setEditError(null);
-    if (!currentBuilding || !currentBuilding._id) return;
-    const name = currentBuilding.name.trim();
-    const address = currentBuilding.address.trim();
-    if (!name || !address) {
-      setEditError('Name and Address are required.');
-      throw new Error('Validation failed');
+
+    if (!currentBuilding.name.trim() || !currentBuilding.address.trim()) {
+      setEditError('Name and Address required');
+      return;
     }
-    const zoneDistribution = (currentBuilding.zoneDistribution || []).map((r) => ({
-      zoneName: (r.zoneName || '').trim() || 'Room',
-      devicesCount: Math.max(0, Number(r.devicesCount) || 0),
-      area: Math.max(0, Number(r.area) || 0),
-    }));
-    const totalZones = zoneDistribution.length;
-    const totalDevices = zoneDistribution.reduce((s, z) => s + (z.devicesCount || 0), 0);
-    try {
-      const payload = {
-        name,
-        address,
-        status: currentBuilding.status,
-        totalFloors: Number(currentBuilding.totalFloors) || 1,
-        totalZones,
-        totalDevices,
-        zoneDistribution,
-      };
-      const res = await fetch(`${API_BASE}/api/buildings/${currentBuilding._id}`, {
+
+    const payload = {
+      ...currentBuilding,
+      totalZones: currentBuilding.zoneDistribution.length,
+      totalDevices: currentBuilding.zoneDistribution.reduce(
+        (s, z) => s + (Number(z.devicesCount) || 0),
+        0
+      ),
+    };
+
+    const res = await fetch(
+      `${API_BASE}/api/buildings/${currentBuilding._id}`,
+      {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const msg = data.message || `Request failed (${res.status})`;
-        setEditError(msg);
-        throw new Error(msg);
       }
-      setBuildings((prev) => prev.map((b) => (b._id === data._id ? data : b)));
-      setIsEditModalOpen(false);
-      setCurrentBuilding(null);
-    } catch (err) {
-      setEditError(err.message || 'Could not update. Try again.');
-      throw err;
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      setEditError(data.message || 'Update failed');
+      return;
     }
+
+    setBuildings((prev) =>
+      prev.map((b) => (b._id === data._id ? data : b))
+    );
+
+    setIsEditModalOpen(false);
+    setCurrentBuilding(null);
   };
 
   if (loading) return <div className="building-config-page"><p className="loading-msg">Loading...</p></div>;
@@ -197,7 +209,7 @@ const BuildingConfigurationPage = () => {
       </div>
 
       <div className="building-list">
-        {buildings.map((building) => {
+        {currentBuildings.map((building) => {
           const { visible, moreCount } = getZoneDisplay(building);
           const zones = building.totalZones ?? building.zones ?? 0;
           const devices = building.totalDevices ?? building.devices ?? 0;
@@ -254,10 +266,40 @@ const BuildingConfigurationPage = () => {
           );
         })}
       </div>
+      <button type="button" className="add-building-btn" onClick={() => { setAddError(null); setNewBuildingRooms([defaultRoomRow()]); setIsAddModalOpen(true); }}>
+        <FaPlus /> Add Home
+      </button>
 
-      {buildings.length === 0 && (
-        <p className="no-buildings">No homes yet. Add one to get started.</p>
+      {/* PAGINATION */}
+      {totalPages > 1 && (
+        <div className="pagination-container">
+          <button
+            disabled={currentPage === 1}
+            onClick={() => paginate(currentPage - 1)}
+          >
+            Previous
+          </button>
+
+          {[...Array(totalPages)].map((_, i) => (
+            <button
+              key={i}
+              className={currentPage === i + 1 ? 'active-page' : ''}
+              onClick={() => paginate(i + 1)}
+            >
+              {i + 1}
+            </button>
+          ))}
+
+          <button
+            disabled={currentPage === totalPages}
+            onClick={() => paginate(currentPage + 1)}
+          >
+            Next
+          </button>
+        </div>
       )}
+
+      {buildings.length === 0 && <p className="no-buildings">No homes yet. Add one to get started.</p>}
 
       <Modal show={isAddModalOpen} onClose={() => { setAddError(null); setIsAddModalOpen(false); }} title="Add New Home" onSubmit={handleAddSubmit}>
         <div className="building-form-fields">

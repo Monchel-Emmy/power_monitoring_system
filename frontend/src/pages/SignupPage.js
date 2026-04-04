@@ -59,7 +59,7 @@ function SignupPage() {
         });
       }
     } catch (err) {
-      setError('Network error. Please try again.');
+      setError('Cannot connect to server. Please check if backend is running on http://localhost:4000');
     }
     setLoading(false);
   };

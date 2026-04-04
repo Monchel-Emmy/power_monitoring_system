@@ -107,7 +107,7 @@ const ManagerCostManagementPage = () => {
             </button>
           </div>
         </div>
-        {data?.monthlyTrend?.length ? (
+        {data?.monthlyTrend?.length && data.monthlyTrend.some((m) => m.cost > 0) ? (
           <div className="cost-chart-container">
             <div className="cost-chart-wrapper">
               <div className="cost-chart-y-axis">
@@ -149,7 +149,7 @@ const ManagerCostManagementPage = () => {
             </div>
           </div>
         ) : (
-          <div className="cost-chart-placeholder">Loading chart...</div>
+          <div className="cost-chart-placeholder">No cost data yet. Add sensor readings in the Sensor Simulator to see costs here.</div>
         )}
       </div>
 

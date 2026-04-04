@@ -1,316 +1,155 @@
 import React, { useEffect, useState } from 'react';
-import Modal from '../components/Modal';
-import './ManagerBuildingZonesPage.css';
-
+import {
+  FaPlus, FaBuilding, FaMapMarkerAlt,
+  FaThLarge, FaServer,
+} from 'react-icons/fa';
+import './BuildingConfigurationPage.css';
 import { API_BASE, getAuthHeaders } from '../config';
 
-const defaultNewBuilding = {
-  name: '',
-  address: '',
-  status: 'active',
-  totalFloors: 1,
-  totalZones: 0,
-  totalDevices: 0,
-  totalArea: 0,
-};
+const ZONES_VISIBLE = 6;
 
 const ManagerBuildingZonesPage = () => {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [newBuilding, setNewBuilding] = useState({ ...defaultNewBuilding });
-  const [addError, setAddError] = useState('');
+  const [buildings, setBuildings] = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [error, setError]         = useState(null);
 
-  const fetchData = async () => {
+  useEffect(() => {
+    fetchBuildings();
+    const iv = setInterval(fetchBuildings, 30000);
+    return () => clearInterval(iv);
+  }, []);
+
+  const fetchBuildings = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/manager/live-hierarchy`, { headers: getAuthHeaders() });
-      if (res.ok) {
-        const json = await res.json();
-        setData(json);
-      }
+      // Use manager-scoped endpoint so only assigned buildings are returned
+      const res = await fetch(`${API_BASE}/api/manager/building-zones`, { headers: getAuthHeaders() });
+      const data = await res.json();
+      // building-zones returns { buildings: [...] }
+      const list = Array.isArray(data) ? data : (data.buildings || []);
+      setBuildings(list);
     } catch (err) {
-      console.error('Failed to load building zones', err);
+      setError('Failed to fetch buildings.');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 30000);
-    return () => clearInterval(interval);
-  }, []);
+  const totals = buildings.reduce(
+    (acc, b) => {
+      acc.buildings += 1;
+      acc.zones    += b.totalZones   || 0;
+      acc.devices  += b.totalDevices || 0;
+      return acc;
+    },
+    { buildings: 0, zones: 0, devices: 0 }
+  );
 
-  const handleAddBuilding = async () => {
-    setAddError('');
-    if (!newBuilding.name.trim() || !newBuilding.address.trim()) {
-      setAddError('Name and address are required');
-      return;
-    }
-    try {
-      const payload = {
-        name: newBuilding.name.trim(),
-        address: newBuilding.address.trim(),
-        status: newBuilding.status,
-        totalFloors: Number(newBuilding.totalFloors) || 1,
-        totalZones: Number(newBuilding.totalZones) || 0,
-        totalDevices: Number(newBuilding.totalDevices) || 0,
-        totalArea: Number(newBuilding.totalArea) || 0,
-      };
-      const res = await fetch(`${API_BASE}/api/buildings`, {
-        method: 'POST',
-        // FIX: added getAuthHeaders() so the POST is authenticated
-        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || 'Failed to add building');
-      }
-      setNewBuilding({ ...defaultNewBuilding });
-      setIsAddModalOpen(false);
-      await fetchData();
-    } catch (err) {
-      setAddError(err.message || 'Failed to add building');
-      throw err;
-    }
+  const getZoneDisplay = (building) => {
+    const dist = building.zoneDistribution || [];
+    return {
+      visible:   dist.slice(0, ZONES_VISIBLE),
+      moreCount: Math.max(0, dist.length - ZONES_VISIBLE),
+    };
   };
+  if (loading) return <div className="building-config-page"><p className="loading-msg">Loading...</p></div>;
+  if (error)   return <div className="building-config-page"><p className="error-msg">{error}</p></div>;
 
   return (
-    <div className="manager-page manager-building-zones-page">
-      <div className="manager-page-header">
-        <h1>Homes &amp; Rooms</h1>
-        <p>
-          Monitor power use by home, room, and device
-        </p>
+    <div className="building-config-page">
+      <div className="building-config-header">
+        <div>
+          <h1>Homes &amp; Rooms</h1>
+          <p>Monitor power use by home, room, and device</p>
+        </div>
       </div>
 
-      <div className="multi-building-card">
-        <div className="multi-building-header">
-          <div>
-            <h2>1. Your Homes</h2>
-            <p>
-              See all your homes and their power usage at a glance
-            </p>
-          </div>
-          <button className="add-building-btn" onClick={() => setIsAddModalOpen(true)}>
-            + Add Home
-          </button>
+      {/* Stats */}
+      <div className="building-config-stats">
+        <div className="config-stat-card stat-buildings">
+          <h3>Homes</h3>
+          <p>{totals.buildings}</p>
         </div>
+        <div className="config-stat-card stat-zones">
+          <h3>Rooms</h3>
+          <p>{totals.zones}</p>
+        </div>
+        <div className="config-stat-card stat-devices">
+          <h3>Total Devices</h3>
+          <p>{totals.devices}</p>
+        </div>
+      </div>
 
-        {loading ? (
-          <div className="building-loading">Loading...</div>
-        ) : (
-          <div className="multi-building-row">
-            {data?.houses?.map((house) => (
-              <div key={house.id || house.name} className="building-summary-card">
-                <div className="summary-header">
-                  <div>
-                    <h3>{house.name}</h3>
+      {/* Building cards */}
+      {buildings.length === 0 ? (
+        <p className="no-buildings">No homes assigned to you yet. Ask an admin to assign homes in User Management.</p>
+      ) : (
+        <div className="building-list">
+          {buildings.map((building) => {
+            const { visible, moreCount } = getZoneDisplay(building);
+            const zones   = building.totalZones   ?? 0;
+            const devices = building.totalDevices ?? 0;
+            const status  = building.status || 'active';
+
+            return (
+              <div key={building._id} className="building-card">
+                <div className="building-card-header">
+                  <div className="building-icon-wrap">
+                    <FaBuilding className="building-icon" />
                   </div>
-                  <span className={`summary-status status-active`}>
-                    Active
-                  </span>
-                </div>
-
-                {/* Room-wise Power Consumption */}
-                {house.rooms && house.rooms.length > 0 ? (
-                  <div className="rooms-power-section">
-                    <h4>Power Consumption by Room</h4>
-                    {house.rooms?.map((room) => {
-                      const totalPower = room.devices?.reduce((sum, device) => sum + (device.power || 0), 0) || 0;
-
-                      return (
-                        <div key={room.name} className="room-power-card">
-                          <div className="room-header">
-                            <span className="room-name">{room.name}</span>
-                                                      </div>
-                          <div className="room-power-metrics">
-                            <div className="power-value">
-                              <span className="power-number">{totalPower.toFixed(1)}</span>
-                              <span className="power-unit">W</span>
-                            </div>
-                            <div className="power-bar">
-                              <div
-                                className="power-fill"
-                                style={{
-                                  width: `${Math.min(100, (totalPower / 2000) * 100)}%`,
-                                  background: totalPower > 1500
-                                    ? 'linear-gradient(90deg, #f59e0b, #d97706)'
-                                    : totalPower > 800
-                                      ? 'linear-gradient(90deg, #3b82f6, #2563eb)'
-                                      : 'linear-gradient(90deg, #22c55e, #16a34a)'
-                                }}
-                              />
-                            </div>
-                          </div>
-                          <div className="room-devices">
-                            {room.devices?.slice(0, 3).map((device) => (
-                              <div key={device.id} className={`device-item ${device.status}`}>
-                                <span className="device-name">{device.name}</span>
-                                <span className="device-power">{device.power || 0}W</span>
-                              </div>
-                            ))}
-                            {room.devices?.length > 3 && (
-                              <span className="more-devices">+{room.devices.length - 3} more</span>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
+                  <div className="building-info">
+                    <h2>{building.name}</h2>
+                    <p className="building-address">
+                      <FaMapMarkerAlt className="pin-icon" /> {building.address || '—'}
+                    </p>
                   </div>
-                ) : (
-                  <div className="no-rooms-message">
-                    <p>No rooms configured for this home</p>
-                  </div>
-                )}
-
-                <div className="summary-footer">
-                  <span>
-                    {(house.rooms?.length || 0)} rooms • {house.rooms?.reduce((sum, room) => sum + (room.devices?.length || 0), 0) || 0} devices
-                  </span>
-                  <div className="total-power">
-                    <span className="total-label">Total Power:</span>
-                    <span className="total-value">
-                      {/* FIX: corrected nested reduce — inner result was previously discarded by misplaced paren + comma operator */}
-                      {(
-                        house.rooms?.reduce((sum, room) =>
-                          sum + (room.devices?.reduce((deviceSum, device) => deviceSum + (device.power || 0), 0)
-                        ), 0).toFixed(1))}W
+                  <div className="building-header-right">
+                    <span className={`building-status-tag status-${status.toLowerCase()}`}>
+                      {status}
                     </span>
                   </div>
                 </div>
-              </div>
-            ))}
-            {(!data?.houses?.length) && (
-              <div className="building-empty">
-                <p>No homes yet. Add your first home below.</p>
-                <button onClick={() => setIsAddModalOpen(true)}>Add Home</button>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
 
-      <div className="cross-building-card">
-        <h2>2. Compare Homes</h2>
-        <p>
-          Compare daily power use across your homes
-        </p>
-        {data?.comparison?.length ? (
-          <div className="cross-building-chart">
-            <div className="comparison-chart">
-              {data.comparison.map((b, i) => {
-                const maxVal = Math.max(...data.comparison.map((x) => x.avgDailyKwh), 1);
-                const height = (b.avgDailyKwh / maxVal) * 100;
-                return (
-                  <div key={b.building} className="comparison-bar-wrap">
-                    <div className="comparison-bar" style={{ height: `${height}%` }} title={`${b.building}: ${b.avgDailyKwh.toLocaleString()} kWh`} />
-                    <span className="comparison-label">{b.building}</span>
-                    <span className="comparison-value">{Math.round(b.avgDailyKwh).toLocaleString()} kWh</span>
+                <div className="building-metrics">
+                  <div className="metric-card">
+                    <FaThLarge className="metric-icon" />
+                    <span className="metric-value">{zones}</span>
+                    <span className="metric-label">Rooms</span>
                   </div>
-                );
-              })}
-            </div>
-            <div className="comparison-legend">
-              <span>Average Daily Usage (kWh)</span>
-            </div>
-          </div>
-        ) : (
-          <div className="cross-building-chart-placeholder">No comparison data available</div>
-        )}
-      </div>
+                  <div className="metric-card">
+                    <FaServer className="metric-icon" />
+                    <span className="metric-value">{devices}</span>
+                    <span className="metric-label">Devices</span>
+                  </div>
+                  {building.currentUsageKw != null && (
+                    <div className="metric-card">
+                      <span className="metric-icon" style={{fontSize:'1.1rem'}}>⚡</span>
+                      <span className="metric-value">{building.currentUsageKw}</span>
+                      <span className="metric-label">kW Now</span>
+                    </div>
+                  )}
+                </div>
 
-      <Modal
-        show={isAddModalOpen}
-        onClose={() => {
-          setIsAddModalOpen(false);
-          setNewBuilding({ ...defaultNewBuilding });
-          setAddError('');
-        }}
-        title="Add New Home"
-        onSubmit={handleAddBuilding}
-      >
-        {addError && <div className="form-error" style={{ marginBottom: '1rem', padding: '0.5rem', background: '#fef2f2', color: '#dc2626', borderRadius: '6px' }}>{addError}</div>}
-        <div className="form-group">
-          <label htmlFor="building-name">Name *</label>
-          <input
-            id="building-name"
-            type="text"
-            value={newBuilding.name}
-            onChange={(e) => setNewBuilding({ ...newBuilding, name: e.target.value })}
-            placeholder="e.g. My Home"
-            required
-          />
+                {visible.length > 0 && (
+                  <div className="zone-distribution">
+                    <h3>Rooms</h3>
+                    <div className="zone-chips-grid">
+                      {visible.map((z, idx) => (
+                        <div key={z.zoneName || idx} className="zone-chip">
+                          <span className="zone-name">{z.zoneName}</span>
+                          <span className="zone-devices">{z.devicesCount ?? 0} devices</span>
+                        </div>
+                      ))}
+                      {moreCount > 0 && (
+                        <div className="zone-more-chip">+{moreCount} more</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
-        <div className="form-group">
-          <label htmlFor="building-address">Address *</label>
-          <input
-            id="building-address"
-            type="text"
-            value={newBuilding.address}
-            onChange={(e) => setNewBuilding({ ...newBuilding, address: e.target.value })}
-            placeholder="e.g., 123 Main St, City"
-            required
-          />
-        </div>
-        <div className="form-group">
-          <label htmlFor="building-status">Status</label>
-          <select
-            id="building-status"
-            value={newBuilding.status}
-            onChange={(e) => setNewBuilding({ ...newBuilding, status: e.target.value })}
-          >
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-            <option value="maintenance">Maintenance</option>
-          </select>
-        </div>
-        <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="building-floors">Total Floors</label>
-            <input
-              id="building-floors"
-              type="number"
-              min="1"
-              value={newBuilding.totalFloors}
-              onChange={(e) => setNewBuilding({ ...newBuilding, totalFloors: e.target.value })}
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="building-zones">Rooms</label>
-            <input
-              id="building-zones"
-              type="number"
-              min="0"
-              value={newBuilding.totalZones}
-              onChange={(e) => setNewBuilding({ ...newBuilding, totalZones: e.target.value })}
-            />
-          </div>
-        </div>
-        <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="building-devices">Total Devices</label>
-            <input
-              id="building-devices"
-              type="number"
-              min="0"
-              value={newBuilding.totalDevices}
-              onChange={(e) => setNewBuilding({ ...newBuilding, totalDevices: e.target.value })}
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="building-area">Total Area (sq ft)</label>
-            <input
-              id="building-area"
-              type="number"
-              min="0"
-              value={newBuilding.totalArea}
-              onChange={(e) => setNewBuilding({ ...newBuilding, totalArea: e.target.value })}
-            />
-          </div>
-        </div>
-      </Modal>
+      )}
     </div>
   );
 };

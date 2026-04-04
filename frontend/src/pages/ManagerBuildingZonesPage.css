@@ -1,294 +1,291 @@
-.manager-building-zones-page {
+.mbz-page {
   max-width: 1200px;
   margin: 0 auto;
+  padding: 20px 24px 48px;
+  font-family: 'Segoe UI', sans-serif;
 }
 
-.multi-building-card,
-.cross-building-card {
-  background-color: #ffffff;
-  border-radius: 18px;
-  padding: 18px 20px 22px;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
-  margin-top: 18px;
-}
+/* ── Page header ── */
+.mbz-page-header { margin-bottom: 24px; }
+.mbz-page-header h1 { margin: 0; font-size: 1.7rem; color: #111827; }
+.mbz-page-header p  { margin: 5px 0 0; font-size: 0.88rem; color: #6b7280; }
 
-.multi-building-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 14px;
-}
-
-.multi-building-header h2 {
-  margin: 0;
-  font-size: 1.05rem;
-}
-
-.multi-building-header p {
-  margin: 4px 0 0;
-  font-size: 0.9rem;
-  color: #6b7280;
-}
-
-.multi-building-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 14px;
-}
-
-.building-summary-card {
-  border-radius: 16px;
+/* ── Section wrapper ── */
+.mbz-section {
+  background: #fff;
   border: 1px solid #e5e7eb;
-  padding: 14px 16px;
+  border-radius: 18px;
+  padding: 22px 24px;
+  box-shadow: 0 2px 10px rgba(15,23,42,0.06);
+  margin-bottom: 24px;
 }
 
-.summary-header {
+.mbz-section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 20px;
 }
 
-.summary-header h3 {
+.mbz-section-header h2 { margin: 0; font-size: 1rem; font-weight: 700; color: #111827; }
+.mbz-section-header p  { margin: 3px 0 0; font-size: 0.82rem; color: #6b7280; }
+
+.mbz-add-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 9px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.mbz-add-btn:hover { background: #1d4ed8; }
+
+/* ── Homes grid ── */
+.mbz-homes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+/* ── Home card ── */
+.mbz-home-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fafafa;
+  transition: box-shadow 0.2s;
+}
+.mbz-home-card:hover { box-shadow: 0 4px 16px rgba(15,23,42,0.1); }
+
+.mbz-home-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px 10px;
+  background: #fff;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.mbz-home-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111827;
   margin: 0;
-  font-size: 0.95rem;
 }
 
-.summary-header p {
-  margin: 2px 0 0;
-  font-size: 0.8rem;
-  color: #6b7280;
-}
-
-.summary-status {
+.mbz-home-status {
   padding: 3px 10px;
   border-radius: 999px;
-  background-color: #dcfce7;
-  color: #166534;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.mbz-home-status.active      { background: #dcfce7; color: #166534; }
+.mbz-home-status.inactive    { background: #f3f4f6; color: #6b7280; }
+.mbz-home-status.maintenance { background: #fef3c7; color: #92400e; }
+
+/* ── No rooms state ── */
+.mbz-no-rooms {
+  padding: 24px 16px;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 0.85rem;
+}
+.mbz-no-rooms-icon { font-size: 1.8rem; margin-bottom: 6px; }
+
+/* ── Rooms list ── */
+.mbz-rooms-list { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+
+.mbz-room-block {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
 }
 
-.summary-usage .label {
-  font-size: 0.8rem;
-  color: #6b7280;
+.mbz-room-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 12px;
+  background: #f8fafc;
+  border-bottom: 1px solid #f3f4f6;
 }
 
-.summary-usage .value {
-  display: block;
-  font-size: 1.3rem;
+.mbz-room-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #374151;
+}
+
+.mbz-room-total {
+  font-size: 0.85rem;
   font-weight: 700;
   color: #111827;
 }
 
-.total-value {
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: #059669;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
+/* Power bar */
+.mbz-power-bar-wrap {
+  padding: 6px 12px 4px;
 }
-
-.no-rooms-message {
-  text-align: center;
-  padding: 2rem;
-  color: #6b7280;
-  font-size: 1rem;
-  background: #f8fafc;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  margin: 1rem 0;
-}
-
-.power-unit {
-  font-size: 1rem;
-  font-weight: 500;
-  color: #6b7280;
-}
-
-.capacity-bar {
-  margin-top: 6px;
-  height: 6px;
+.mbz-power-bar-bg {
+  height: 5px;
+  background: #f3f4f6;
   border-radius: 999px;
-  background-color: #e5e7eb;
   overflow: hidden;
 }
-
-.capacity-fill {
-  width: 60%;
+.mbz-power-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, #22c55e, #16a34a);
+  border-radius: 999px;
+  transition: width 0.4s ease;
 }
 
-.capacity-meta {
+/* Devices inside room */
+.mbz-devices-list { padding: 4px 12px 10px; display: flex; flex-direction: column; gap: 4px; }
+
+.mbz-device-row {
   display: flex;
   justify-content: space-between;
-  font-size: 0.75rem;
-}
-
-.capacity-meta .trend {
-  color: #16a34a;
-}
-
-.summary-footer {
-  margin-top: 8px;
-  font-size: 0.8rem;
-  color: #6b7280;
-}
-
-.cross-building-card h2 {
-  margin: 0 0 6px;
-  font-size: 1.05rem;
-}
-
-.cross-building-card p {
-  margin: 0 0 12px;
-  font-size: 0.9rem;
-  color: #6b7280;
-}
-
-.cross-building-chart-placeholder {
-  height: 220px;
-  border-radius: 16px;
-  background: linear-gradient(to top, #fef9c3, #f9fafb);
-  display: flex;
   align-items: center;
-  justify-content: center;
-  color: #6b7280;
-  font-size: 0.9rem;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: background 0.1s;
+}
+.mbz-device-row:hover { background: #f9fafb; }
+
+.mbz-device-left { display: flex; align-items: center; gap: 7px; }
+
+.mbz-device-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.mbz-device-dot.Online  { background: #22c55e; }
+.mbz-device-dot.Offline { background: #ef4444; }
+.mbz-device-dot.Warning { background: #f59e0b; }
+
+.mbz-device-name  { font-size: 0.82rem; color: #374151; }
+.mbz-device-power { font-size: 0.82rem; font-weight: 600; color: #111827; }
+
+/* ── Home footer ── */
+.mbz-home-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  border-top: 1px solid #f3f4f6;
+  background: #fff;
 }
 
-.building-loading,
-.building-empty {
-  padding: 40px 20px;
+.mbz-home-meta { font-size: 0.78rem; color: #9ca3af; }
+
+.mbz-home-total {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.mbz-home-total-label { font-size: 0.75rem; color: #6b7280; }
+.mbz-home-total-val   { font-size: 1.1rem; font-weight: 700; color: #059669; }
+.mbz-home-total-unit  { font-size: 0.75rem; color: #6b7280; }
+
+/* ── Empty state ── */
+.mbz-empty {
   text-align: center;
-  color: #6b7280;
+  padding: 48px 20px;
+  color: #9ca3af;
 }
+.mbz-empty-icon { font-size: 2.5rem; margin-bottom: 10px; }
+.mbz-empty p    { margin: 0 0 14px; font-size: 0.95rem; color: #6b7280; }
 
-.building-empty button {
-  margin-top: 12px;
-  padding: 8px 16px;
-  border-radius: 8px;
-  border: 1px solid #d1d5db;
-  background-color: #ffffff;
-  color: #374151;
-  cursor: pointer;
-}
-
-.add-building-btn {
-  padding: 8px 16px;
-  border-radius: 8px;
-  border: 1px solid #d1d5db;
-  background-color: #ffffff;
-  color: #374151;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.add-building-btn:hover {
-  background-color: #f3f4f6;
-}
-
-.summary-status.status-offline {
-  background-color: #fee2e2;
-  color: #b91c1c;
-}
-
-.summary-status.status-maintenance {
-  background-color: #fef3c7;
-  color: #92400e;
-}
-
-.cross-building-chart {
-  margin-top: 16px;
-}
-
-.comparison-chart {
+/* ── Compare section ── */
+.mbz-compare-chart {
   display: flex;
   align-items: flex-end;
-  justify-content: space-around;
-  gap: 16px;
-  height: 200px;
+  gap: 12px;
+  height: 180px;
   padding: 0 8px;
 }
 
-.comparison-bar-wrap {
+.mbz-bar-wrap {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  height: 100%;
+  justify-content: flex-end;
 }
 
-.comparison-bar {
+.mbz-bar {
   width: 100%;
-  max-width: 60px;
-  min-height: 8px;
-  background: linear-gradient(to top, #3b82f6, #60a5fa);
+  max-width: 56px;
+  min-height: 6px;
   border-radius: 8px 8px 0 0;
-  transition: height 0.3s ease;
+  transition: height 0.4s ease;
 }
 
-.comparison-label {
+.mbz-bar-label { font-size: 0.78rem; color: #6b7280; font-weight: 600; text-align: center; }
+.mbz-bar-val   { font-size: 0.72rem; color: #9ca3af; }
+
+.mbz-compare-legend {
+  text-align: center;
   font-size: 0.8rem;
-  color: #6b7280;
-  font-weight: 500;
+  color: #9ca3af;
+  margin-top: 10px;
 }
 
-.comparison-value {
-  font-size: 0.75rem;
+.mbz-compare-empty {
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  font-size: 0.88rem;
+  background: #f9fafb;
+  border-radius: 10px;
+}
+
+/* ── Loading ── */
+.mbz-loading {
+  text-align: center;
+  padding: 48px;
   color: #9ca3af;
 }
 
-.comparison-legend {
-  margin-top: 12px;
-  text-align: center;
-  font-size: 0.85rem;
-  color: #6b7280;
-}
-
-/* Form styles for Add Building modal */
+/* ── Modal form ── */
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  gap: 5px;
+  margin-bottom: 14px;
 }
-
-.form-group label {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #374151;
-}
-
+.form-group label { font-size: 0.85rem; font-weight: 600; color: #374151; }
 .form-group input,
 .form-group select {
-  padding: 10px 14px;
+  padding: 9px 12px;
   border: 1px solid #d1d5db;
   border-radius: 8px;
-  font-size: 0.9375rem;
-  transition: border-color 0.2s;
+  font-size: 0.9rem;
 }
-
 .form-group input:focus,
 .form-group select:focus {
   outline: none;
   border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
 }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+@media (max-width: 640px) {
+  .mbz-homes-grid { grid-template-columns: 1fr; }
+  .form-row { grid-template-columns: 1fr; }
+  .mbz-page { padding: 14px 14px 40px; }
 }
-
-@media (max-width: 600px) {
-  .form-row {
-    grid-template-columns: 1fr;
-  }
-}
-

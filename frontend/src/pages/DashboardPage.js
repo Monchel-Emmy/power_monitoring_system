@@ -42,9 +42,11 @@ function DashboardPage() {
   return (
     <>
       <div className="content-body">
+        <div className="panel-header">
+          <h1>Admin Control Panel</h1>
+          <p className="panel-subtitle">System administration and management dashboard</p>
+        </div>
         <div className="admin-control-panel-overview">
-          <h2>Admin Control Panel</h2>
-          <p>Comprehensive system administration and management dashboard</p>
           <div className="overview-cards">
             <div className="card">
               <h3>System Health</h3>
@@ -66,32 +68,6 @@ function DashboardPage() {
               <h3>Audit Entries</h3>
               <p className="metric">{overview.auditEntries}</p>
             </div>
-          </div>
-        </div>
-
-        <div className="quick-actions-section">
-          <h2>Quick Actions</h2>
-          <div className="quick-actions-grid">
-            <button className="quick-action-btn" onClick={() => navigate('/user-management')}>
-              <span className="action-icon">�</span>
-              <span>User Management</span>
-            </button>
-            <button className="quick-action-btn" onClick={() => navigate('/building-configuration')}>
-              <span className="action-icon">�</span>
-              <span>Building Config</span>
-            </button>
-            <button className="quick-action-btn" onClick={() => navigate('/device-management')}>
-              <span className="action-icon">⚡</span>
-              <span>Device Control</span>
-            </button>
-            <button className="quick-action-btn" onClick={() => navigate('/audit-log')}>
-              <span className="action-icon">�</span>
-              <span>Audit Trail</span>
-            </button>
-            <button className="quick-action-btn" onClick={() => navigate('/sensor-simulator')}>
-              <span className="action-icon">�</span>
-              <span>Sensor Lab</span>
-            </button>
           </div>
         </div>
       </div>

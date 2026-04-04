@@ -206,3 +206,66 @@
   background-color: #1d4ed8;
 }
 
+
+/* Export dropdown */
+.report-download-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.download-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background-color: #ffffff;
+  font-size: 0.83rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+  color: #374151;
+}
+
+.download-btn:hover { background-color: #f3f4f6; }
+
+.report-export-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(15,23,42,0.12);
+  min-width: 170px;
+  z-index: 50;
+  overflow: hidden;
+}
+
+.report-export-dropdown button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.report-export-dropdown button:hover { background: #f3f4f6; }
+
+.exp-icon.csv { color: #16a34a; font-size: 1rem; }
+.exp-icon.pdf { color: #dc2626; font-size: 1rem; }
+
+.new-report-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}

@@ -14,6 +14,10 @@ const SensorSimulatorPage = () => {
   const [voltage, setVoltage] = useState('220');
   const [current, setCurrent] = useState('');
   const [message, setMessage] = useState(null);
+  const [sendReadingMessage, setSendReadingMessage] = useState(null);
+  const [bulkMessage, setBulkMessage] = useState(null);
+  const [deleteMessage, setDeleteMessage] = useState(null);
+  const [demoMessage, setDemoMessage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [bulkLoading, setBulkLoading] = useState(false);
   const [deleteAllLoading, setDeleteAllLoading] = useState(false);
@@ -32,17 +36,48 @@ const SensorSimulatorPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Auto-calculate current when power or voltage changes
+  const calculateCurrent = () => {
+    const p = Number(power);
+    const v = Number(voltage);
+    if (!isNaN(p) && !isNaN(v) && p >= 0 && v > 0) {
+      const calculatedCurrent = (p * 1000) / v; // Convert kW to W, then divide by V
+      setCurrent(calculatedCurrent.toFixed(2));
+    } else {
+      setCurrent('');
+    }
+  };
+
+  const handlePowerChange = (value) => {
+    setPower(value);
+    setTimeout(calculateCurrent, 0); // Defer calculation
+  };
+
+  const handleVoltageChange = (value) => {
+    setVoltage(value);
+    setTimeout(calculateCurrent, 0); // Defer calculation
+  };
+
+  // Remove scrollToTop - we'll show messages locally instead
+
+  const setMessageWithTimer = (setMessageFunction, message) => {
+    setMessageFunction(message);
+    setTimeout(() => {
+      setMessageFunction(null);
+    }, 5000); // Auto-hide after 5 seconds
+  };
+
   const sendOneReading = async (e) => {
     e.preventDefault();
     if (!selectedDeviceId) {
-      setMessage({ type: 'error', text: 'Select a device' });
+      setMessageWithTimer(setSendReadingMessage, { type: 'error', text: 'Select a device' });
       return;
     }
     const p = Number(power);
     const v = Number(voltage);
     const c = Number(current);
     if (isNaN(p) || p < 0) {
-      setMessage({ type: 'error', text: 'Enter a valid power (kW)' });
+      setMessageWithTimer(setSendReadingMessage, { type: 'error', text: 'Enter a valid power (kW)' });
       return;
     }
     setLoading(true);
@@ -60,9 +95,9 @@ const SensorSimulatorPage = () => {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message || 'Failed to add reading');
-      setMessage({ type: 'success', text: '1 reading added. Check Live Monitoring!' });
+      setMessageWithTimer(setSendReadingMessage, { type: 'success', text: '1 reading added. Check Live Monitoring!' });
     } catch (err) {
-      setMessage({ type: 'error', text: err.message || 'Request failed' });
+      setMessageWithTimer(setSendReadingMessage, { type: 'error', text: err.message || 'Request failed' });
     } finally {
       setLoading(false);
     }
@@ -70,7 +105,7 @@ const SensorSimulatorPage = () => {
 
   const generateBulk = async (hours = 24) => {
     if (!selectedDeviceId) {
-      setMessage({ type: 'error', text: 'Select a device' });
+      setMessageWithTimer(setBulkMessage, { type: 'error', text: 'Select a device' });
       return;
     }
     setBulkLoading(true);
@@ -98,9 +133,9 @@ const SensorSimulatorPage = () => {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message || 'Bulk add failed');
-      setMessage({ type: 'success', text: `${data.count || readings.length} readings added. Refresh Live Monitoring & Analytics!` });
+      setMessageWithTimer(setBulkMessage, { type: 'success', text: `${data.count || readings.length} readings added. Refresh Live Monitoring & Analytics!` });
     } catch (err) {
-      setMessage({ type: 'error', text: err.message || 'Request failed' });
+      setMessageWithTimer(setBulkMessage, { type: 'error', text: err.message || 'Request failed' });
     } finally {
       setBulkLoading(false);
     }
@@ -111,19 +146,19 @@ const SensorSimulatorPage = () => {
       return;
     }
     setDeleteAllLoading(true);
-    setMessage(null);
+    setDeleteMessage(null);
     try {
       const res = await fetch(`${API_BASE}/api/sensor-readings/delete-all`, { method: 'DELETE' });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message || 'Failed to delete readings');
-      setMessage({
+      setMessageWithTimer(setDeleteMessage, {
         type: 'success',
         text: data.deletedCount !== undefined
           ? `All ${data.deletedCount} readings deleted. System is clean — add data again when needed.`
           : (data.message || 'All readings deleted.'),
       });
     } catch (err) {
-      setMessage({ type: 'error', text: err.message || 'Request failed' });
+      setMessageWithTimer(setDeleteMessage, { type: 'error', text: err.message || 'Request failed' });
     } finally {
       setDeleteAllLoading(false);
     }
@@ -136,14 +171,14 @@ const SensorSimulatorPage = () => {
       const res = await fetch(`${API_BASE}/api/sensor-readings/demo?clear=1`, { method: 'POST' });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message || 'Failed to load demo data');
-      setMessage({
+      setMessageWithTimer(setDemoMessage, {
         type: 'success',
         text: data.count !== undefined
           ? `Demo data loaded: ${data.count} readings for ${data.devicesUsed || 'all'} device(s). Open Live Monitoring or Analytics to see it.`
           : (data.message || 'Demo data loaded.'),
       });
     } catch (err) {
-      setMessage({ type: 'error', text: err.message || 'Request failed' });
+      setMessageWithTimer(setDemoMessage, { type: 'error', text: err.message || 'Request failed' });
     } finally {
       setDemoLoading(false);
     }
@@ -175,6 +210,11 @@ const SensorSimulatorPage = () => {
         >
           {demoLoading ? 'Loading…' : 'Load demo data'}
         </button>
+        {demoMessage && (
+          <div className={`simulator-message ${demoMessage.type}`} style={{ marginTop: '12px' }}>
+            {demoMessage.text}
+          </div>
+        )}
       </div>
 
       <div className="simulator-card">
@@ -204,7 +244,7 @@ const SensorSimulatorPage = () => {
                 step="0.1"
                 min="0"
                 value={power}
-                onChange={(e) => setPower(e.target.value)}
+                onChange={(e) => handlePowerChange(e.target.value)}
                 placeholder="e.g. 45.5"
               />
             </div>
@@ -215,18 +255,19 @@ const SensorSimulatorPage = () => {
                 step="1"
                 min="0"
                 value={voltage}
-                onChange={(e) => setVoltage(e.target.value)}
+                onChange={(e) => handleVoltageChange(e.target.value)}
                 placeholder="220"
               />
             </div>
             <div>
-              <label>Current (A)</label>
+              <label>Current (A) <span className="calculated-indicator">(auto-calculated)</span></label>
               <input
                 type="number"
                 step="0.1"
                 min="0"
                 value={current}
-                onChange={(e) => setCurrent(e.target.value)}
+                readOnly
+                className="calculated-field"
                 placeholder="auto from P/V"
               />
             </div>
@@ -234,6 +275,11 @@ const SensorSimulatorPage = () => {
           <button type="submit" className="simulator-btn primary" disabled={loading}>
             {loading ? 'Sending…' : 'Send 1 reading'}
           </button>
+          {sendReadingMessage && (
+            <div className={`simulator-message ${sendReadingMessage.type}`} style={{ marginTop: '12px' }}>
+              {sendReadingMessage.text}
+            </div>
+          )}
         </form>
       </div>
 
@@ -258,6 +304,11 @@ const SensorSimulatorPage = () => {
             Last 7 days (hourly)
           </button>
         </div>
+        {bulkMessage && (
+          <div className={`simulator-message ${bulkMessage.type}`} style={{ marginTop: '12px' }}>
+            {bulkMessage.text}
+          </div>
+        )}
         <p className="simulator-hint">Uses random power/voltage/current. Then open Manager → Live Monitoring or Analytics to see the effect.</p>
       </div>
 
@@ -272,6 +323,11 @@ const SensorSimulatorPage = () => {
         >
           {deleteAllLoading ? 'Deleting…' : 'Delete all readings'}
         </button>
+        {deleteMessage && (
+          <div className={`simulator-message ${deleteMessage.type}`} style={{ marginTop: '12px' }}>
+            {deleteMessage.text}
+          </div>
+        )}
       </div>
 
       <div className="simulator-card simulator-tips">

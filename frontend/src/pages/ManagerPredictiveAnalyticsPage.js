@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import './ManagerPredictiveAnalyticsPage.css';
 
 import { API_BASE, getAuthHeaders } from '../config';
 
 /**
- * Predictive Analytics – What's next.
+ * Predictive Analytics â€“ What's next.
  * One "predict next" selector, one combined chart (past actual + forecast), four numbers, one plain-language summary.
  * Data = manager's assigned homes only.
  */
@@ -73,11 +73,11 @@ const ManagerPredictiveAnalyticsPage = () => {
   const tomorrowKwh = data?.tomorrowsForecastKwh ?? data?.forecastSeries?.values?.[0] ?? 0;
   const totalForecastKwh = data?.totalForecastKwh ?? (data?.forecastSeries?.values || []).reduce((s, v) => s + (v || 0), 0);
   const changePct = data?.forecastChangePercent ?? 0;
-  const confidence = data?.predictionAccuracyLabel || '—';
+  const confidence = data?.predictionAccuracyLabel || 'â€”';
 
-  let inShort = 'Choose how many days to forecast. Predictions are based on your homes’ recent usage.';
+  let inShort = 'Choose how many days to forecast. Predictions are based on your homesâ€™ recent usage.';
   if (data && !loading) {
-    inShort = `Over the next ${days} day${days !== 1 ? 's' : ''} we expect about ${Number(totalForecastKwh).toLocaleString()} kWh in total. Tomorrow we expect about ${Number(tomorrowKwh).toLocaleString()} kWh. ${confidence !== '—' ? `Confidence: ${confidence}.` : ''}`;
+    inShort = `Over the next ${days} day${days !== 1 ? 's' : ''} we expect about ${Number(totalForecastKwh).toLocaleString()} kWh in total. Tomorrow we expect about ${Number(tomorrowKwh).toLocaleString()} kWh. ${confidence !== 'â€”' ? `Confidence: ${confidence}.` : ''}`;
   }
 
   return (
@@ -104,21 +104,21 @@ const ManagerPredictiveAnalyticsPage = () => {
       <div className="predict-kpi-row">
         <div className="predict-kpi">
           <span className="predict-kpi-label">Expected tomorrow</span>
-          <span className="predict-kpi-value">{loading ? '—' : `${Number(tomorrowKwh).toLocaleString()} kWh`}</span>
+          <span className="predict-kpi-value">{loading ? 'â€”' : `${Number(tomorrowKwh).toLocaleString()} kWh`}</span>
         </div>
         <div className="predict-kpi">
           <span className="predict-kpi-label">Expected total (forecast period)</span>
-          <span className="predict-kpi-value">{loading ? '—' : `${Number(totalForecastKwh).toLocaleString()} kWh`}</span>
+          <span className="predict-kpi-value">{loading ? 'â€”' : `${Number(totalForecastKwh).toLocaleString()} kWh`}</span>
         </div>
         <div className="predict-kpi">
           <span className="predict-kpi-label">Trend vs recent</span>
           <span className={`predict-kpi-value ${changePct < 0 ? 'down' : changePct > 0 ? 'up' : ''}`}>
-            {loading ? '—' : `${changePct >= 0 ? '+' : ''}${changePct}%`}
+            {loading ? 'â€”' : `${changePct >= 0 ? '+' : ''}${changePct}%`}
           </span>
         </div>
         <div className="predict-kpi">
           <span className="predict-kpi-label">Confidence</span>
-          <span className="predict-kpi-value">{loading ? '—' : confidence}</span>
+          <span className="predict-kpi-value">{loading ? 'â€”' : confidence}</span>
         </div>
       </div>
 
@@ -126,7 +126,7 @@ const ManagerPredictiveAnalyticsPage = () => {
         <h2 className="predict-chart-title">Past and forecast</h2>
         <p className="predict-chart-desc">Left: last 7 days actual. Right: predicted use for your chosen period.</p>
         {loading ? (
-          <div className="predict-chart-placeholder">Loading…</div>
+          <div className="predict-chart-placeholder">Loadingâ€¦</div>
         ) : combined.length ? (
           <div className="predict-chart-wrap">
             <div className="predict-chart-row">
@@ -204,7 +204,7 @@ const ManagerPredictiveAnalyticsPage = () => {
           <ul className="predict-anomalies-list">
             {data.anomalies.slice(0, 5).map((a, i) => (
               <li key={i}>
-                {new Date(a.timestamp).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })} — {a.value} kWh
+                {new Date(a.timestamp).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })} â€” {a.value} kWh
               </li>
             ))}
           </ul>

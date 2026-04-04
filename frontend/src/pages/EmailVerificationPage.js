@@ -139,9 +139,9 @@ function EmailVerificationPage() {
             marginBottom: '1rem',
             fontSize: '14px'
           }}>
-            <strong>Email service unavailable</strong><br />
+            <strong>Email service temporarily unavailable</strong><br />
             Your verification code is: <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#dc2626' }}>{fallbackCode}</span><br />
-            <small>This code is valid for 10 minutes.</small>
+            <small>This code is valid for 10 minutes. Copy and paste it above.</small>
           </div>
         )}
         

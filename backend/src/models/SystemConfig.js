@@ -12,9 +12,14 @@ const SystemConfigSchema = new mongoose.Schema({
   },
   alerts: {
     defaultThresholdPercent: { type: Number, default: 80 },
+    powerThreshold: { type: Number, default: 1000 },
     emailEnabled: { type: Boolean, default: true },
     smsEnabled: { type: Boolean, default: false },
     pushEnabled: { type: Boolean, default: true },
+    notifyOnHigh: { type: Boolean, default: true },
+    notifyOnMedium: { type: Boolean, default: true },
+    notifyOnLow: { type: Boolean, default: false },
+    notifyOnTypes: { type: [String], default: [] },
   },
   security: {
     twoFactorRequired: { type: Boolean, default: true },

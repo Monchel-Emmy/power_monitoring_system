@@ -2,6 +2,10 @@ const express = require('express');
 const router = express.Router();
 const SensorReading = require('../models/SensorReading');
 const Device = require('../models/Device');
+const SystemConfig = require('../models/SystemConfig');
+const Alert = require('../models/Alert');
+const User = require('../models/User');
+const { sendAlertEmail } = require('../utils/emailService');
 
 // Middleware to get a single sensor reading by ID
 const getSensorReading = async (req, res, next) => {
@@ -47,7 +51,7 @@ router.get('/time-range', async (req, res) => {
   }
 });
 
-// Create a new sensor reading
+// Create a new sensor reading — triggers alert if power exceeds threshold
 router.post('/', async (req, res) => {
   const { deviceId, timestamp, powerConsumption, voltage, current } = req.body;
   const deviceExists = await Device.findById(deviceId);
@@ -63,6 +67,69 @@ router.post('/', async (req, res) => {
   });
   try {
     const newSensorReading = await sensorReading.save();
+
+    // --- Alert logic: fire if power exceeds threshold ---
+    const power = Number(powerConsumption) || 0;
+    try {
+      const config = await SystemConfig.findOne({ id: 'default' }).lean();
+      const threshold = config?.alerts?.powerThreshold ?? 1000;
+
+      console.log(`[Alert Check] Device: ${deviceExists.name} | Power: ${power} kW | Threshold: ${threshold} kW`);
+
+      if (power >= threshold) {
+        console.log(`[Alert] TRIGGERED — ${power} kW >= ${threshold} kW on "${deviceExists.name}"`);
+
+        // Parse "Home A - Room 1" → building = "Home A", room = "Room 1"
+        const locationStr = deviceExists.location || '';
+        const locationParts = locationStr.split(' - ');
+        const buildingName = locationParts[0]?.trim() || locationStr || 'Unknown';
+        const roomName = locationParts[1]?.trim() || '';
+
+        const alert = await Alert.create({
+          building: buildingName,
+          device: deviceExists._id,
+          type: 'High Consumption',
+          severity: power >= threshold * 1.5 ? 'High' : 'Medium',
+          message: `${deviceExists.name} in ${locationStr || buildingName} reported ${power} kW — exceeds the ${threshold} kW threshold.`,
+          value: power,
+          threshold,
+          timestamp: new Date(),
+          status: 'Open',
+        });
+
+        console.log(`[Alert] Created alert ID: ${alert._id}`);
+
+        // Email all active managers & admins
+        if (config?.alerts?.emailEnabled !== false) {
+          const managers = await User.find({ role: { $in: ['admin', 'manager'] }, status: 'active' }).select('email').lean();
+          console.log(`[Alert] Sending email to ${managers.length} manager(s):`, managers.map(m => m.email));
+
+          for (const mgr of managers) {
+            if (mgr.email) {
+              sendAlertEmail(mgr.email, {
+                ...alert.toObject(),
+                device: {
+                  name: deviceExists.name,
+                  location: locationStr,
+                  building: buildingName,
+                  room: roomName,
+                  type: deviceExists.type,
+                  status: deviceExists.status,
+                },
+              }).catch((e) => console.error('[Alert] Email failed:', e));
+            }
+          }
+        } else {
+          console.log('[Alert] Email notifications are disabled in config.');
+        }
+      } else {
+        console.log(`[Alert Check] No alert — ${power} kW is below threshold of ${threshold} kW`);
+      }
+    } catch (alertErr) {
+      console.error('[Alert] Check failed (non-fatal):', alertErr.message);
+    }
+    // --- end alert logic ---
+
     res.status(201).json(newSensorReading);
   } catch (err) {
     res.status(400).json({ message: err.message });

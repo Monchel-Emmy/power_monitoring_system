@@ -34,17 +34,23 @@ async function getBuildingsForManager(req) {
 router.get('/live-overview', async (req, res) => {
   try {
     const buildings = await getBuildingsForManager(req);
-    const allowedBuildingNames = new Set(buildings.map((b) => b.name));
+    const buildingNames = buildings.map((b) => b.name);
+    const allowedBuildingNames = new Set(buildingNames);
 
-    // For manager with assigned buildings: only include readings from devices in those buildings
-    let allowedDeviceIds = null;
-    let devicesInScope = [];
+    function matchBuilding(location) {
+      if (!location) return null;
+      for (const name of buildingNames) {
+        if (location === name || location.startsWith(name + ' - ')) return name;
+      }
+      return getBuildingFromLocation(location);
+    }
+
     const allDevices = await Device.find().lean();
+    let devicesInScope = allDevices;
+    let allowedDeviceIds = null;
     if (getAllowedBuildingIds(req) !== null) {
-      devicesInScope = allDevices.filter((d) => allowedBuildingNames.has(getBuildingFromLocation(d.location || '')));
+      devicesInScope = allDevices.filter((d) => allowedBuildingNames.has(matchBuilding(d.location || '')));
       allowedDeviceIds = devicesInScope.map((d) => d._id);
-    } else {
-      devicesInScope = allDevices;
     }
 
     const deviceFilter = allowedDeviceIds !== null && allowedDeviceIds.length > 0
@@ -138,7 +144,7 @@ router.get('/live-overview', async (req, res) => {
     const byBuilding = {};
     recentReadings.forEach((r) => {
       const loc = deviceIdToLocation[r.device?.toString()] || '';
-      const b = getBuildingFromLocation(loc);
+      const b = matchBuilding(loc);
       if (!allowedBuildingNames.has(b)) return;
       if (!byBuilding[b]) byBuilding[b] = { power: 0 };
       byBuilding[b].power += r.powerConsumption;
@@ -151,7 +157,7 @@ router.get('/live-overview', async (req, res) => {
     });
 
     const buildingStatus = buildings.map((b) => {
-      const devsInBuilding = devicesInScope.filter((d) => getBuildingFromLocation(d.location) === b.name);
+      const devsInBuilding = devicesInScope.filter((d) => matchBuilding(d.location) === b.name);
       const hasWarning = devsInBuilding.some((d) => d.status === 'Warning');
       const hasOffline = devsInBuilding.some((d) => d.status === 'Offline');
       const status = hasOffline ? 'Offline' : hasWarning ? 'Warning' : 'Active';
@@ -192,11 +198,34 @@ router.get('/live-overview', async (req, res) => {
 router.get('/live-hierarchy', async (req, res) => {
   try {
     const buildings = await getBuildingsForManager(req);
-    const allowedBuildingNames = new Set(buildings.map((b) => b.name));
 
-    let devices = await Device.find().lean();
+    // Build a lookup: any prefix of a device location that matches a building name
+    // e.g. device.location = "Home A - Room 1" → building "Home A"
+    // We match by checking if location starts with buildingName + " - " OR equals buildingName
+    const allDevices = await Device.find().lean();
+
+    // Map each device to its building by checking location prefix against all building names
+    function matchBuilding(location, buildingNames) {
+      if (!location) return null;
+      // Try exact prefix match: "BuildingName - Room"
+      for (const name of buildingNames) {
+        if (location === name || location.startsWith(name + ' - ')) {
+          return name;
+        }
+      }
+      // Fallback: original regex helper
+      return getBuildingFromLocation(location);
+    }
+
+    const buildingNames = buildings.map((b) => b.name);
+    const allowedBuildingNames = new Set(buildingNames);
+
+    let devices = allDevices;
     if (getAllowedBuildingIds(req) !== null) {
-      devices = devices.filter((d) => allowedBuildingNames.has(getBuildingFromLocation(d.location || '')));
+      devices = allDevices.filter((d) => {
+        const matched = matchBuilding(d.location || '', buildingNames);
+        return allowedBuildingNames.has(matched);
+      });
     }
 
     const deviceIds = devices.map((d) => d._id);
@@ -206,7 +235,7 @@ router.get('/live-hierarchy', async (req, res) => {
       });
     }
 
-    // Latest reading per device (aggregate: sort by timestamp desc, group by device, first)
+    // Latest reading per device
     const latestReadings = await SensorReading.aggregate([
       { $match: { device: { $in: deviceIds } } },
       { $sort: { timestamp: -1 } },
@@ -224,15 +253,24 @@ router.get('/live-hierarchy', async (req, res) => {
       latestReadings.map((r) => [r._id.toString(), r])
     );
 
-    // Build hierarchy: building -> room -> devices
+    // Build hierarchy using prefix-matched building names
     const houseMap = new Map();
     for (const b of buildings) {
       houseMap.set(b.name, { id: b._id.toString(), name: b.name, roomMap: new Map() });
     }
+
     for (const d of devices) {
-      const buildingName = getBuildingFromLocation(d.location);
-      const roomName = getRoomFromLocation(d.location);
+      const buildingName = matchBuilding(d.location || '', buildingNames);
       if (!houseMap.has(buildingName)) continue;
+
+      // Room = everything after "BuildingName - "
+      let roomName = 'Unknown';
+      if (d.location && d.location.startsWith(buildingName + ' - ')) {
+        roomName = d.location.slice(buildingName.length + 3).trim() || 'Unknown';
+      } else if (d.location && d.location !== buildingName) {
+        roomName = getRoomFromLocation(d.location);
+      }
+
       const house = houseMap.get(buildingName);
       if (!house.roomMap.has(roomName)) house.roomMap.set(roomName, []);
       const reading = readingByDevice[d._id.toString()];
@@ -299,10 +337,10 @@ router.get('/mobile-overview', async (req, res) => {
       const devs = devices.filter((d) => getBuildingFromLocation(d.location) === b.name);
       return !devs.some((d) => d.status === 'Offline');
     }).length;
-    const totalBuildings = buildings.length || 3;
+    const totalBuildings = buildings.length;
     const buildingsOnline = `${onlineBuildings}/${totalBuildings}`;
 
-    const buildingCards = buildings.length ? buildings.map((b, i) => {
+    const buildingCards = buildings.map((b, i) => {
       const usage = byBuilding[b.name] || { power: 0 };
       const usageKw = Math.round(usage.power * 10) / 10;
       const devs = devices.filter((d) => getBuildingFromLocation(d.location) === b.name);
@@ -311,20 +349,9 @@ router.get('/mobile-overview', async (req, res) => {
       const status = hasOffline ? 'Offline' : hasWarning ? 'Warning' : 'Operational';
       const maxCap = (b.totalDevices || 10) * 18;
       const accent = ['blue', 'green', 'orange'][i % 3];
-      const kw = usageKw > 0 ? usageKw : (recentReadings.length === 0 ? [425, 678, 234][i % 3] : 0);
-      const pct = maxCap > 0 ? Math.min(100, (kw / maxCap) * 100) : 0;
-      return { name: b.name, status, usageKw: kw, maxCapacity: maxCap, usagePct: pct, accent };
-    }) : [
-      { name: 'Home A', status: 'Operational', usageKw: 425, maxCapacity: 1000, usagePct: 42.5, accent: 'blue' },
-      { name: 'Home B', status: 'Operational', usageKw: 678, maxCapacity: 1200, usagePct: 56.5, accent: 'green' },
-      { name: 'Home C', status: 'Operational', usageKw: 234, maxCapacity: 800, usagePct: 29.3, accent: 'orange' },
-    ];
-
-    if (recentReadings.length === 0 && buildings.length > 0) {
-      buildingCards[0].usageKw = 425;
-      buildingCards[1].usageKw = 678;
-      buildingCards[2].usageKw = 234;
-    }
+      const pct = maxCap > 0 ? Math.min(100, (usageKw / maxCap) * 100) : 0;
+      return { name: b.name, status, usageKw, maxCapacity: maxCap, usagePct: pct, accent };
+    });
 
     res.json({
       currentUsageKwh,
@@ -349,11 +376,21 @@ router.get('/mobile-overview', async (req, res) => {
 router.get('/predictive', async (req, res) => {
   try {
     const buildings = await getBuildingsForManager(req);
-    const allowedBuildingNames = new Set(buildings.map((b) => b.name));
+    const buildingNames = buildings.map((b) => b.name);
+    const allowedBuildingNames = new Set(buildingNames);
+
+    function matchBldgPred(location) {
+      if (!location) return null;
+      for (const name of buildingNames) {
+        if (location === name || location.startsWith(name + ' - ')) return name;
+      }
+      return null;
+    }
+
     let allowedDeviceIds = null;
     const allDevices = await Device.find().lean();
     if (getAllowedBuildingIds(req) !== null) {
-      const devicesInScope = allDevices.filter((d) => allowedBuildingNames.has(getBuildingFromLocation(d.location || '')));
+      const devicesInScope = allDevices.filter((d) => matchBldgPred(d.location || '') !== null);
       allowedDeviceIds = devicesInScope.map((d) => d._id);
     }
     const deviceFilter = allowedDeviceIds !== null && allowedDeviceIds.length > 0
@@ -402,15 +439,34 @@ router.get('/predictive', async (req, res) => {
       anomalyThreshold: 2.5,
     });
 
+    // If no historical data at all, return empty/zero response
+    if (historicalData.length === 0) {
+      return res.json({
+        tomorrowsForecastKwh: 0,
+        totalForecastKwh: 0,
+        forecastChangePercent: 0,
+        predictionAccuracyLabel: 'No Data',
+        predictionAccuracyPercent: 0,
+        weeklyAnomalies: 0,
+        activeAnomalies: 0,
+        nextPeakDay: null,
+        forecastSeries: { horizon: `${forecastDays}d`, unit: 'kWh', values: Array(forecastDays).fill(0), upperBounds: Array(forecastDays).fill(0), lowerBounds: Array(forecastDays).fill(0) },
+        recentActual: Array.from({ length: 7 }, (_, i) => {
+          const d = new Date(now); d.setDate(d.getDate() - (6 - i));
+          const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+          return { day: `${dayNames[d.getDay()]} ${d.getDate()}`, date: d.toISOString().slice(0,10), usageKwh: 0 };
+        }),
+        trend: { slope: 0, direction: 'stable' },
+        anomalies: [],
+        modelMetrics: { mae: 0, stdDev: 0 },
+      });
+    }
+
     // Validate forecast series has valid values
-    if (!predictions.forecastSeries || !predictions.forecastSeries.values || 
+    if (!predictions.forecastSeries || !predictions.forecastSeries.values ||
         predictions.forecastSeries.values.length === 0 ||
         !predictions.forecastSeries.values.some((v) => v > 0)) {
-      console.warn('Invalid forecast series, generating fallback');
-      // Generate fallback forecasts
-      const avgValue = historicalData.length > 0
-        ? historicalData.reduce((s, d) => s + (d.value || 0), 0) / historicalData.length
-        : 10000;
+      const avgValue = historicalData.reduce((s, d) => s + (d.value || 0), 0) / historicalData.length;
       predictions.forecastSeries = {
         horizon: `${forecastDays}d`,
         unit: 'kWh',
@@ -466,11 +522,21 @@ router.get('/predictive', async (req, res) => {
 router.get('/analytics-trends', async (req, res) => {
   try {
     const buildings = await getBuildingsForManager(req);
-    const allowedBuildingNames = new Set(buildings.map((b) => b.name));
-    let allowedDeviceIds = null;
+    const buildingNames = buildings.map((b) => b.name);
+    const allowedBuildingNames = new Set(buildingNames);
+
+    function matchBldg(location) {
+      if (!location) return null;
+      for (const name of buildingNames) {
+        if (location === name || location.startsWith(name + ' - ')) return name;
+      }
+      return null;
+    }
+
     const allDevices = await Device.find().lean();
+    let allowedDeviceIds = null;
     if (getAllowedBuildingIds(req) !== null) {
-      const devicesInScope = allDevices.filter((d) => allowedBuildingNames.has(getBuildingFromLocation(d.location || '')));
+      const devicesInScope = allDevices.filter((d) => matchBldg(d.location || '') !== null);
       allowedDeviceIds = devicesInScope.map((d) => d._id);
     }
     const deviceFilter = allowedDeviceIds !== null && allowedDeviceIds.length > 0
@@ -519,8 +585,8 @@ router.get('/analytics-trends', async (req, res) => {
     const byBuilding = {};
     periodReadings.forEach((r) => {
       const loc = r.device?.location || '';
-      const b = getBuildingFromLocation(loc);
-      if (!allowedBuildingNames.size || allowedBuildingNames.has(b)) {
+      const b = matchBldg(loc);
+      if (b && allowedBuildingNames.has(b)) {
         if (!byBuilding[b]) byBuilding[b] = [];
         byBuilding[b].push(r.powerConsumption);
       }
@@ -805,11 +871,7 @@ router.get('/building-zones', async (req, res) => {
     });
 
     if (buildingCards.length === 0) {
-      buildingCards.push(
-        { name: 'Home A', address: '123 Main St (Home/Office)', currentUsageKw: 425, maxCapacityKw: 1000, capacityPercent: 43, status: 'Online', totalZones: 5, trend: '+5.2%' },
-        { name: 'Home B', address: '456 Garden Ave (Home/Office)', currentUsageKw: 678, maxCapacityKw: 1200, capacityPercent: 56, status: 'Online', totalZones: 4, trend: '+3.8%' },
-        { name: 'Home C', address: '789 Oak Blvd (Home/Office)', currentUsageKw: 234, maxCapacityKw: 800, capacityPercent: 29, status: 'Online', totalZones: 3, trend: '+8.7%' },
-      );
+      return res.json({ buildings: [], comparison: [] });
     }
 
     const comparisonData = buildingCards.map((b) => ({
@@ -840,31 +902,48 @@ router.get('/cost-management', async (req, res) => {
     const rangeParam = (req.query.range || '12m').toLowerCase();
     const is3Year = rangeParam === '3y' || rangeParam === '36';
     const is6Month = rangeParam === '6m' || rangeParam === '6';
-    const timeRange = is3Year ? '3y' : is6Month ? '6m' : '12m';
 
     const buildings = await getBuildingsForManager(req);
-    const [devices, readingsThisMonth, readingsLastMonth] = await Promise.all([
-      Device.find().lean(),
+    const buildingNames = buildings.map((b) => b.name);
+
+    // Prefix-match helper — works for any building name
+    function matchBldg(location) {
+      if (!location) return null;
+      for (const name of buildingNames) {
+        if (location === name || location.startsWith(name + ' - ')) return name;
+      }
+      return null;
+    }
+
+    // Get only devices belonging to assigned buildings
+    const allDevices = await Device.find().lean();
+    const assignedDeviceIds = new Set(
+      allDevices.filter((d) => matchBldg(d.location || '')).map((d) => d._id.toString())
+    );
+
+    const deviceIdToLocation = Object.fromEntries(allDevices.map((d) => [d._id.toString(), d.location || '']));
+
+    // Fetch only readings for assigned devices
+    const [readingsThisMonth, readingsLastMonth] = await Promise.all([
       SensorReading.find({ timestamp: { $gte: startOfMonth } }).lean(),
       SensorReading.find({ timestamp: { $gte: startOfLastMonth, $lt: startOfMonth } }).lean(),
     ]);
 
-    const deviceIdToLocation = Object.fromEntries(devices.map((d) => [d._id.toString(), d.location || '']));
-    
+    // Filter to assigned buildings only
+    const filteredThisMonth  = readingsThisMonth.filter((r)  => assignedDeviceIds.has(r.device?.toString()));
+    const filteredLastMonth  = readingsLastMonth.filter((r)  => assignedDeviceIds.has(r.device?.toString()));
+
     const byBuildingThisMonth = {};
-    readingsThisMonth.forEach((r) => {
+    filteredThisMonth.forEach((r) => {
       const loc = deviceIdToLocation[r.device?.toString()] || '';
-      const b = getBuildingFromLocation(loc);
+      const b = matchBldg(loc);
+      if (!b) return;
       if (!byBuildingThisMonth[b]) byBuildingThisMonth[b] = { kwh: 0, peakKw: 0 };
       byBuildingThisMonth[b].kwh += r.powerConsumption;
-      if (r.powerConsumption > byBuildingThisMonth[b].peakKw) {
-        byBuildingThisMonth[b].peakKw = r.powerConsumption;
-      }
+      if (r.powerConsumption > byBuildingThisMonth[b].peakKw) byBuildingThisMonth[b].peakKw = r.powerConsumption;
     });
 
-    const totalKwhThisMonth = readingsThisMonth.reduce((s, r) => s + r.powerConsumption, 0);
-    const totalKwhLastMonth = readingsLastMonth.reduce((s, r) => s + r.powerConsumption, 0);
-    
+    const totalKwhThisMonth = filteredThisMonth.reduce((s, r) => s + r.powerConsumption, 0);
     const daysInMonth = now.getDate();
     const daysInLastMonth = endOfLastMonth.getDate();
     const projectedKwh = daysInMonth > 0 ? (totalKwhThisMonth / daysInMonth) * daysInLastMonth : totalKwhThisMonth;
@@ -872,106 +951,60 @@ router.get('/cost-management', async (req, res) => {
     const projectedCost = costFrwResidential(projectedKwh);
     const budgetVariance = MONTHLY_BUDGET_FRW > 0 ? Math.round(((projectedCost - MONTHLY_BUDGET_FRW) / MONTHLY_BUDGET_FRW) * 1000) / 10 : 0;
 
-    const peakDemandKw = readingsThisMonth.length
-      ? Math.max(...readingsThisMonth.map((r) => r.powerConsumption), 0)
-      : 523;
+    const peakDemandKw = filteredThisMonth.length
+      ? Math.max(...filteredThisMonth.map((r) => r.powerConsumption), 0) : 0;
     const peakDemandCharges = Math.round(peakDemandKw * DEMAND_RATE_FRW);
-
     const savingsFromOptimization = Math.round(totalCost * 0.067);
 
     const buildingCosts = buildings.map((b) => {
-      const usage = byBuildingThisMonth[b.name] || { kwh: 0, peakKw: 0 };
-      const daysElapsed = daysInMonth;
-      const projectedKwhBuilding = daysElapsed > 0 ? (usage.kwh / daysElapsed) * daysInLastMonth : usage.kwh;
+      const usage = byBuildingThisMonth[b.name] || { kwh: 0 };
+      const projectedKwhBuilding = daysInMonth > 0 ? (usage.kwh / daysInMonth) * daysInLastMonth : usage.kwh;
       const buildingCost = costFrwResidential(projectedKwhBuilding);
       const buildingBudget = MONTHLY_BUDGET_FRW * (b.totalDevices || 10) / (buildings.reduce((s, x) => s + (x.totalDevices || 10), 0) || 1);
       const buildingVariance = buildingBudget > 0 ? Math.round(((buildingCost - buildingBudget) / buildingBudget) * 1000) / 10 : 0;
-      
-      const demoCosts = { 'Home A': 55000, 'Home B': 65000, 'Home C': 27000 };
-      const demoVariances = { 'Home A': -4.1, 'Home B': -7.3, 'Home C': -8.0 };
-      
       return {
         name: b.name,
-        cost: readingsThisMonth.length > 0 ? buildingCost : demoCosts[b.name] || 0,
-        variance: readingsThisMonth.length > 0 ? buildingVariance : (demoVariances[b.name] || 0),
+        cost: filteredThisMonth.length > 0 ? buildingCost : 0,
+        variance: filteredThisMonth.length > 0 ? buildingVariance : 0,
       };
     });
 
     const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    
-    // Calculate real monthly costs from historical sensor readings (6 months, 12 months, or 36 for 3-year view)
     const monthsToFetch = is3Year ? 36 : is6Month ? 6 : 12;
     const startDate = new Date(now.getFullYear(), now.getMonth() - (monthsToFetch - 1), 1);
-    startDate.setHours(0, 0, 0, 0);
-    
-    const historicalReadings = await SensorReading.find({
-      timestamp: { $gte: startDate }
-    }).lean();
-    
-    // Group readings by month
+
+    // Fetch historical readings for assigned devices only
+    const historicalReadings = await SensorReading.find({ timestamp: { $gte: startDate } }).lean();
+    const filteredHistorical = historicalReadings.filter((r) => assignedDeviceIds.has(r.device?.toString()));
+
     const monthlyData = {};
-    historicalReadings.forEach((r) => {
-      const readingDate = new Date(r.timestamp);
-      const monthKey = `${readingDate.getFullYear()}-${readingDate.getMonth()}`;
-      if (!monthlyData[monthKey]) {
-        monthlyData[monthKey] = { kwh: 0, count: 0 };
-      }
-      monthlyData[monthKey].kwh += r.powerConsumption;
-      monthlyData[monthKey].count += 1;
+    filteredHistorical.forEach((r) => {
+      const d = new Date(r.timestamp);
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      if (!monthlyData[key]) monthlyData[key] = { kwh: 0 };
+      monthlyData[key].kwh += r.powerConsumption;
     });
-    
-    // Build monthly trend array
+
     const monthlyTrend = [];
     for (let i = monthsToFetch - 1; i >= 0; i--) {
       const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
-      const monthKey = `${monthDate.getFullYear()}-${monthDate.getMonth()}`;
-      
-      const monthInfo = monthlyData[monthKey];
+      const monthEnd  = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
+      const key = `${monthDate.getFullYear()}-${monthDate.getMonth()}`;
+      const info = monthlyData[key];
       let monthCost = 0;
-      
-      if (monthInfo && monthInfo.kwh > 0) {
-        // Calculate cost from actual readings (Rwanda residential tariff)
-        monthCost = costFrwResidential(monthInfo.kwh);
-      } else if (i === 0) {
-        // Current month - use readingsThisMonth if available, or project
-        if (readingsThisMonth.length > 0) {
-          const daysElapsed = now.getDate();
-          const avgDailyKwh = totalKwhThisMonth / daysElapsed;
-          const daysInMonth = monthEnd.getDate();
-          const projectedKwh = avgDailyKwh * daysInMonth;
-          monthCost = costFrwResidential(projectedKwh);
-        } else {
-          // No data at all - use current month's totalCost if available
-          monthCost = totalCost || Math.round(MONTHLY_BUDGET_FRW * 0.9);
-        }
-      } else {
-        // Past months with no data - use baseline estimate with some variation (Frw)
-        const variation = (i % 6) * 0.02;
-        monthCost = Math.round(MONTHLY_BUDGET_FRW * (0.85 + variation));
+      if (info && info.kwh > 0) {
+        monthCost = costFrwResidential(info.kwh);
+      } else if (i === 0 && filteredThisMonth.length > 0) {
+        const avgDaily = totalKwhThisMonth / daysInMonth;
+        monthCost = costFrwResidential(avgDaily * monthEnd.getDate());
       }
-      
-      // Format month label differently for 3-year view (short: "Mar 2024")
-      const monthLabel = is3Year
+      const label = is3Year
         ? `${monthNames[monthDate.getMonth()].slice(0, 3)} ${monthDate.getFullYear()}`
-        : `${monthNames[monthDate.getMonth()]} ${monthDate.getFullYear()}`;
-      
-      monthlyTrend.push({
-        month: monthLabel,
-        cost: monthCost,
-      });
+        : monthNames[monthDate.getMonth()].slice(0, 3);
+      monthlyTrend.push({ month: label, cost: monthCost });
     }
 
-    res.json({
-      month: `${monthNames[now.getMonth()]} ${now.getFullYear()}`,
-      totalCost: totalCost || 145000,
-      projectedCost,
-      budgetVariance: budgetVariance || -6.4,
-      peakDemandCharges: peakDemandCharges || 8340,
-      savingsFromOptimization: savingsFromOptimization || 3250,
-      buildingCosts,
-      monthlyTrend,
-    });
+    res.json({ month: `${monthNames[now.getMonth()]} ${now.getFullYear()}`, totalCost, projectedCost, budgetVariance, peakDemandCharges, savingsFromOptimization, buildingCosts, monthlyTrend });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -1048,6 +1081,8 @@ router.get('/reports/export', async (req, res) => {
     }
 
     const buildings = await getBuildingsForManager(req);
+    const buildingNames = buildings.map((b) => b.name);
+
     const [readings, devices] = await Promise.all([
       SensorReading.find(dateFilter).populate('device', 'location').lean(),
       Device.find().lean(),
@@ -1059,17 +1094,27 @@ router.get('/reports/export', async (req, res) => {
       return s;
     };
 
+    // Use prefix matching so any building name works (not just "Home X" / "Building X")
+    function matchBuildingName(location) {
+      if (!location) return null;
+      for (const name of buildingNames) {
+        if (location === name || location.startsWith(name + ' - ')) return name;
+      }
+      return null; // not in any assigned building — skip
+    }
+
     const deviceIdToLocation = Object.fromEntries(devices.map((d) => [d._id.toString(), d.location || '']));
     const byBuilding = {};
     readings.forEach((r) => {
       const loc = deviceIdToLocation[r.device?.toString()] || r.device?.location || '';
-      const b = getBuildingFromLocation(loc);
+      const b = matchBuildingName(loc);
+      if (!b) return; // skip readings not belonging to assigned buildings
       if (!byBuilding[b]) byBuilding[b] = { kwh: 0, count: 0 };
       byBuilding[b].kwh += r.powerConsumption;
       byBuilding[b].count += 1;
     });
 
-    const totalKwh = readings.reduce((s, r) => s + r.powerConsumption, 0);
+    const totalKwh = Object.values(byBuilding).reduce((s, v) => s + v.kwh, 0);
     const totalCost = costFrwResidential(totalKwh);
 
     const rows = [
@@ -1079,7 +1124,7 @@ router.get('/reports/export', async (req, res) => {
       ['Summary', 'Value', 'Unit'],
       ['Total Consumption', Math.round(totalKwh * 10) / 10, 'kWh'],
       ['Estimated Cost (Rwanda residential tariff)', totalCost, 'Frw'],
-      ['Readings Count', readings.length, ''],
+      ['Readings Count', Object.values(byBuilding).reduce((s, v) => s + v.count, 0), ''],
       [],
       ['By Home', 'Consumption (kWh)', 'Cost (Frw)', 'Readings'],
       ...Object.entries(byBuilding).map(([b, v]) => [

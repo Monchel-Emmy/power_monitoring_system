@@ -31,16 +31,38 @@
 }
 
 .content-body {
-  padding: 2rem;
+  padding: 16px;
+  background-color: #f8f9fa;
+  min-height: calc(100vh - 60px);
+}
+
+.panel-header {
+  margin-bottom: 20px;
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.panel-header h1 {
+  margin: 0;
+  color: #1a237e;
+  font-size: 1.8em;
+  font-weight: 600;
+}
+
+.panel-subtitle {
+  margin: 4px 0 0 0;
+  color: #6c757d;
+  font-size: 0.9em;
 }
 
 .admin-control-panel-overview {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
-  padding: 2.5rem;
-  border-radius: 20px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-  margin-bottom: 2rem;
-  border: 1px solid rgba(102, 126, 234, 0.1);
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  margin-bottom: 0;
 }
 
 .admin-control-panel-overview h2 {
@@ -67,57 +89,40 @@
 
 .overview-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 2rem;
-  margin-top: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-top: 0;
 }
 
 .card {
-  background: linear-gradient(145deg, #ffffff 0%, #f1f5f9 100%);
-  padding: 2rem 1.5rem;
-  border-radius: 16px;
+  background: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
   text-align: center;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  position: relative;
-  overflow: hidden;
-  border: 1px solid rgba(102, 126, 234, 0.1);
-}
-
-.card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-  border-radius: 16px 16px 0 0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  transition: all 0.2s ease;
+  border: 1px solid #e9ecef;
 }
 
 .card:hover {
-  transform: translateY(-12px) scale(1.03);
-  box-shadow: 0 20px 40px rgba(102, 126, 234, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
 .card h3 {
   margin-top: 0;
-  color: #475569;
-  font-size: 1.1rem;
+  color: #495057;
+  font-size: 0.85em;
   font-weight: 600;
-  margin-bottom: 1rem;
+  margin-bottom: 8px;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
 }
 
 .card .metric {
-  font-size: 2.5rem;
-  font-weight: 800;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
+  font-size: 1.8em;
+  font-weight: 700;
+  color: #1a237e;
   margin: 0.5rem 0;
   line-height: 1;
 }
@@ -131,7 +136,6 @@
   -webkit-background-clip: unset;
   -webkit-text-fill-color: unset;
   background-clip: unset;
-  -webkit-text-fill-color: unset;
 }
 
 .card .health-status {

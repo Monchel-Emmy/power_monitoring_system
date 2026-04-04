@@ -19,9 +19,12 @@ const defaultNewDevice = {
 
 function DeviceManagementPage() {
   const [devices, setDevices] = useState([]);
+  const [buildings, setBuildings] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState('All Types');
-  const [filterStatus, setFilterStatus] = useState('All Status');
+  const [filterBuilding, setFilterBuilding] = useState('All');
+  const [filterStatus, setFilterStatus] = useState('All');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [devicesPerPage] = useState(5);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newDevice, setNewDevice] = useState({ ...defaultNewDevice });
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -32,11 +35,15 @@ function DeviceManagementPage() {
   useEffect(() => {
     const fetchDevices = async () => {
       try {
+        console.log('Fetching devices from:', `${API_BASE}/api/devices`);
         const res = await fetch(`${API_BASE}/api/devices`);
+        console.log('Response status:', res.status);
         const data = await res.json();
+        console.log('Devices data:', data);
         setDevices(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error('Failed to load devices', err);
+        setDevices([]);
       }
     };
     fetchDevices();
@@ -60,10 +67,17 @@ function DeviceManagementPage() {
       (d.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (d.location || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (d.id || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchType = filterType === 'All Types' || d.type === filterType;
-    const matchStatus = filterStatus === 'All Status' || d.status === filterStatus;
-    return matchSearch && matchType && matchStatus;
+    const matchStatus = filterStatus === 'All' || d.status === filterStatus;
+    return matchSearch && matchStatus;
   });
+
+  // Pagination logic
+  const indexOfLastDevice = currentPage * devicesPerPage;
+  const indexOfFirstDevice = indexOfLastDevice - devicesPerPage;
+  const currentDevices = filteredDevices.slice(indexOfFirstDevice, indexOfLastDevice);
+  const totalPages = Math.ceil(filteredDevices.length / devicesPerPage);
+
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
   const stats = (() => {
     const total = devices.length;
@@ -227,13 +241,8 @@ function DeviceManagementPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <select value={filterType} onChange={(e) => setFilterType(e.target.value)}>
-          <option value="All Types">All Types</option>
-          <option value="Smart Meter">Smart Meter</option>
-          <option value="IoT Sensor">IoT Sensor</option>
-        </select>
-        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-          <option value="All Status">All Status</option>
+                <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+          <option value="All">All Status</option>
           <option value="Online">Online</option>
           <option value="Offline">Offline</option>
           <option value="Warning">Warning</option>
@@ -241,7 +250,7 @@ function DeviceManagementPage() {
       </div>
 
       <div className="device-cards-grid">
-        {filteredDevices.map((device) => (
+        {currentDevices.map((device) => (
           <div key={device.id} className="device-card">
             <div className="card-header">
               <span className={`status-icon ${(device.status || '').toLowerCase()}`}>
@@ -282,8 +291,42 @@ function DeviceManagementPage() {
           </div>
         ))}
       </div>
-      {filteredDevices.length === 0 && (
+      {currentDevices.length === 0 && (
         <p className="no-devices">No devices match your filters.</p>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="pagination-container">
+          <div className="pagination-info">
+            Showing {indexOfFirstDevice + 1} to {Math.min(indexOfLastDevice, filteredDevices.length)} of {filteredDevices.length} devices
+          </div>
+          <div className="pagination-controls">
+            <button 
+              className="pagination-btn" 
+              onClick={() => paginate(currentPage - 1)} 
+              disabled={currentPage === 1}
+            >
+              Previous
+            </button>
+            {[...Array(totalPages)].map((_, index) => (
+              <button
+                key={index + 1}
+                className={`pagination-btn ${currentPage === index + 1 ? 'active' : ''}`}
+                onClick={() => paginate(index + 1)}
+              >
+                {index + 1}
+              </button>
+            ))}
+            <button 
+              className="pagination-btn" 
+              onClick={() => paginate(currentPage + 1)} 
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </button>
+          </div>
+        </div>
       )}
 
       <Modal show={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add New Device" onSubmit={handleAddSubmit}>
@@ -359,14 +402,6 @@ function DeviceManagementPage() {
                 onChange={(e) => setNewDevice({ ...newDevice, battery: e.target.value })}
                 placeholder="e.g. 95%"
               />
-            </div>
-            <div className="form-group">
-              <label>Status</label>
-              <select value={newDevice.status} onChange={(e) => setNewDevice({ ...newDevice, status: e.target.value })}>
-                <option value="Online">Online</option>
-                <option value="Offline">Offline</option>
-                <option value="Warning">Warning</option>
-              </select>
             </div>
           </div>
         </div>
@@ -453,14 +488,6 @@ function DeviceManagementPage() {
                   onChange={(e) => setCurrentDevice({ ...currentDevice, battery: e.target.value })}
                   placeholder="e.g. 95%"
                 />
-              </div>
-              <div className="form-group">
-                <label>Status</label>
-                <select value={currentDevice.status} onChange={(e) => setCurrentDevice({ ...currentDevice, status: e.target.value })}>
-                  <option value="Online">Online</option>
-                  <option value="Offline">Offline</option>
-                  <option value="Warning">Warning</option>
-                </select>
               </div>
             </div>
           </div>

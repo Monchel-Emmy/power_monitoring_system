@@ -30,10 +30,35 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 4000;
 
+// Health check route
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'Power Monitoring API',
+    status: 'running',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
 const corsOptions = {
-  origin: process.env.FRONTEND_ORIGIN || true, // true = allow all (dev); set to your Vercel URL in production
-  credentials: true,
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      process.env.FRONTEND_ORIGIN || 'http://localhost:3000',
+      'http://localhost:3000'
+    ];
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
 };
+
 app.use(cors(corsOptions));
 app.use(express.json());
 

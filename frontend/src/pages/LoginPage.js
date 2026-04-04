@@ -53,7 +53,7 @@ function LoginPage() {
         navigate(from.startsWith('/manager') ? from : '/manager', { replace: true });
       }
     } catch (err) {
-      setError('Network error. Please try again.');
+      setError('Connection failed. Please check your internet connection and try again.');
     }
     setLoading(false);
   };

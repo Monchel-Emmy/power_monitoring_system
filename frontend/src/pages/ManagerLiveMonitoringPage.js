@@ -11,6 +11,7 @@ const ManagerLiveMonitoringPage = () => {
   const [expandedHouses, setExpandedHouses] = useState(new Set());
   const [expandedRooms, setExpandedRooms] = useState(new Set());
   const [chartHoveredPoint, setChartHoveredPoint] = useState(null);
+  const [editingDeviceStatus, setEditingDeviceStatus] = useState(null);
 
   const fetchOverview = async () => {
     try {
@@ -104,6 +105,29 @@ const ManagerLiveMonitoringPage = () => {
     const x = (i / divisor) * chartWidth;
     const y = chartHeight - (chartData[i].power / maxPower) * chartHeight;
     return { x, y };
+  };
+
+  const updateDeviceStatus = async (deviceId, newStatus) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/devices/${deviceId}`, {
+        method: 'PUT',
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      
+      if (res.ok) {
+        // Refresh hierarchy to show updated status
+        fetchHierarchy();
+        setEditingDeviceStatus(null);
+      } else {
+        console.error('Failed to update device status');
+      }
+    } catch (err) {
+      console.error('Error updating device status:', err);
+    }
   };
 
   if (!loading && !overview) {
@@ -242,13 +266,18 @@ const ManagerLiveMonitoringPage = () => {
 
       <div className="live-hierarchy-card">
         <div className="live-hierarchy-header">
-          <h2>Live monitoring by home, room & device</h2>
+          <h2>Live monitoring by home, room &amp; device</h2>
           <p>Power, voltage and current for each device in your assigned homes</p>
         </div>
         {hierarchy?.houses?.length ? (
           <div className="live-hierarchy-list">
             {hierarchy.houses.map((house) => {
               const isHouseOpen = expandedHouses.has(house.id);
+              const roomCount = house.rooms?.length || 0;
+              const deviceCount = house.rooms?.reduce((s, r) => s + (r.devices?.length || 0), 0) || 0;
+              const totalPower = house.rooms?.reduce((s, r) =>
+                s + (r.devices?.reduce((ds, d) => ds + (d.power || 0), 0) || 0), 0) || 0;
+
               return (
                 <div key={house.id} className="hierarchy-house">
                   <button
@@ -257,18 +286,25 @@ const ManagerLiveMonitoringPage = () => {
                     onClick={() => toggleHouse(house.id)}
                     aria-expanded={isHouseOpen}
                   >
-                    <HiHome className="hierarchy-icon house-icon" />
-                    <span className="hierarchy-house-name">{house.name}</span>
-                    <span className="hierarchy-house-meta">
-                      {house.rooms?.length || 0} room{house.rooms?.length !== 1 ? 's' : ''}
-                    </span>
+                    <div className="hierarchy-house-icon-wrap">
+                      <HiHome />
+                    </div>
+                    <div className="hierarchy-house-info">
+                      <span className="hierarchy-house-name">{house.name}</span>
+                      <span className="hierarchy-house-sub">{roomCount} room{roomCount !== 1 ? 's' : ''} · {deviceCount} device{deviceCount !== 1 ? 's' : ''}</span>
+                    </div>
+                    {totalPower > 0 && (
+                      <span className="hierarchy-house-power">{totalPower.toFixed(1)} kW</span>
+                    )}
                     <span className="hierarchy-chevron">{isHouseOpen ? '▼' : '▶'}</span>
                   </button>
+
                   {isHouseOpen && (
                     <div className="hierarchy-rooms">
                       {house.rooms?.length ? house.rooms.map((room) => {
                         const roomKey = `${house.id}-${room.name}`;
                         const isRoomOpen = expandedRooms.has(roomKey);
+                        const roomPower = room.devices?.reduce((s, d) => s + (d.power || 0), 0) || 0;
                         return (
                           <div key={roomKey} className="hierarchy-room">
                             <button
@@ -281,6 +317,7 @@ const ManagerLiveMonitoringPage = () => {
                               <span className="hierarchy-room-name">{room.name}</span>
                               <span className="hierarchy-room-meta">
                                 {room.devices?.length || 0} device{room.devices?.length !== 1 ? 's' : ''}
+                                {roomPower > 0 && <span className="room-power-inline"> · {roomPower.toFixed(1)} kW</span>}
                               </span>
                               <span className="hierarchy-chevron">{isRoomOpen ? '▼' : '▶'}</span>
                             </button>
@@ -302,9 +339,27 @@ const ManagerLiveMonitoringPage = () => {
                                     <span className="device-power">{dev.power != null ? `${dev.power} kW` : '—'}</span>
                                     <span className="device-voltage">{dev.voltage != null ? `${dev.voltage} V` : '—'}</span>
                                     <span className="device-current">{dev.current != null ? `${dev.current} A` : '—'}</span>
-                                    <span className={`device-status status-${(dev.status || '').toLowerCase()}`}>
-                                      {dev.status || '—'}
-                                    </span>
+                                    {editingDeviceStatus === dev.id ? (
+                                      <select
+                                        className="device-status-select"
+                                        value={dev.status || 'Online'}
+                                        onChange={(e) => updateDeviceStatus(dev.id, e.target.value)}
+                                        onBlur={() => setEditingDeviceStatus(null)}
+                                        autoFocus
+                                      >
+                                        <option value="Online">Online</option>
+                                        <option value="Offline">Offline</option>
+                                        <option value="Warning">Warning</option>
+                                      </select>
+                                    ) : (
+                                      <span
+                                        className={`device-status status-${(dev.status || '').toLowerCase()}`}
+                                        onClick={() => setEditingDeviceStatus(dev.id)}
+                                        title="Click to change status"
+                                      >
+                                        {dev.status || '—'}
+                                      </span>
+                                    )}
                                   </div>
                                 ))}
                               </div>
@@ -321,7 +376,7 @@ const ManagerLiveMonitoringPage = () => {
             })}
           </div>
         ) : hierarchy === null && overview ? (
-          <p className="hierarchy-empty hierarchy-error">Could not load device list. Try refreshing the page.</p>
+          <p className="hierarchy-empty hierarchy-error">Could not load device list. Try refreshing.</p>
         ) : (
           <p className="hierarchy-empty">No homes assigned to you. Ask an admin to assign homes in User Management.</p>
         )}

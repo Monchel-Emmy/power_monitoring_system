@@ -31,8 +31,8 @@ const BuildingSchema = new mongoose.Schema({
     default: 0,
   },
   totalArea: {
-    type: Number, // in square meters or feet
-    required: true,
+    type: Number,
+    default: 0,
     min: 0,
   },
   zoneDistribution: [

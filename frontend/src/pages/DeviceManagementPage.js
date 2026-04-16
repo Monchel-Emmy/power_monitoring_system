@@ -354,7 +354,7 @@ function DeviceManagementPage() {
               <label>Home</label>
               <select
                 value={newDevice.building || ''}
-                onChange={(e) => setNewDevice({ ...newDevice, building: e.target.value })}
+                onChange={(e) => setNewDevice({ ...newDevice, building: e.target.value, locationDetail: '' })}
               >
                 <option value="">Select home</option>
                 {buildingsList.map((b) => (
@@ -364,12 +364,24 @@ function DeviceManagementPage() {
             </div>
             <div className="form-group">
               <label>Room</label>
-              <input
-                type="text"
-                value={newDevice.locationDetail || ''}
-                onChange={(e) => setNewDevice({ ...newDevice, locationDetail: e.target.value })}
-                placeholder="e.g. Room 1"
-              />
+              {buildingsList.find((b) => b.name === newDevice.building)?.zoneDistribution?.length > 0 ? (
+                <select
+                  value={newDevice.locationDetail || ''}
+                  onChange={(e) => setNewDevice({ ...newDevice, locationDetail: e.target.value })}
+                >
+                  <option value="">Select room</option>
+                  {buildingsList.find((b) => b.name === newDevice.building).zoneDistribution.map((z, i) => (
+                    <option key={i} value={z.zoneName}>{z.zoneName}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  value={newDevice.locationDetail || ''}
+                  onChange={(e) => setNewDevice({ ...newDevice, locationDetail: e.target.value })}
+                  placeholder="e.g. Room 1"
+                />
+              )}
             </div>
           </div>
           <p className="form-hint">Location will be shown as &quot;Home - Room&quot;</p>
@@ -442,7 +454,7 @@ function DeviceManagementPage() {
                 <label>Home</label>
                 <select
                   value={currentDevice.building || ''}
-                  onChange={(e) => setCurrentDevice({ ...currentDevice, building: e.target.value })}
+                  onChange={(e) => setCurrentDevice({ ...currentDevice, building: e.target.value, locationDetail: '' })}
                 >
                   <option value="">Select home</option>
                   {buildingsList.map((b) => (
@@ -452,12 +464,24 @@ function DeviceManagementPage() {
               </div>
               <div className="form-group">
                 <label>Room</label>
-                <input
-                  type="text"
-                  value={currentDevice.locationDetail || ''}
-                  onChange={(e) => setCurrentDevice({ ...currentDevice, locationDetail: e.target.value })}
-                  placeholder="e.g. Room 1"
-                />
+                {buildingsList.find((b) => b.name === currentDevice.building)?.zoneDistribution?.length > 0 ? (
+                  <select
+                    value={currentDevice.locationDetail || ''}
+                    onChange={(e) => setCurrentDevice({ ...currentDevice, locationDetail: e.target.value })}
+                  >
+                    <option value="">Select room</option>
+                    {buildingsList.find((b) => b.name === currentDevice.building).zoneDistribution.map((z, i) => (
+                      <option key={i} value={z.zoneName}>{z.zoneName}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value={currentDevice.locationDetail || ''}
+                    onChange={(e) => setCurrentDevice({ ...currentDevice, locationDetail: e.target.value })}
+                    placeholder="e.g. Room 1"
+                  />
+                )}
               </div>
             </div>
             <p className="form-hint">Location: &quot;Home - Room&quot;</p>

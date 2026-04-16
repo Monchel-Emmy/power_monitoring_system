@@ -231,7 +231,14 @@ router.get('/live-hierarchy', async (req, res) => {
     const deviceIds = devices.map((d) => d._id);
     if (deviceIds.length === 0) {
       return res.json({
-        houses: buildings.map((b) => ({ id: b._id.toString(), name: b.name, rooms: [] })),
+        houses: buildings.map((b) => ({
+          id: b._id.toString(),
+          name: b.name,
+          rooms: (b.zoneDistribution || []).map((z) => ({
+            name: (z.zoneName || '').trim() || 'Room',
+            devices: [],
+          })).filter((r) => r.name),
+        })),
       });
     }
 
@@ -289,6 +296,16 @@ router.get('/live-hierarchy', async (req, res) => {
 
     const houses = buildings.map((b) => {
       const house = houseMap.get(b.name) || { id: b._id.toString(), name: b.name, roomMap: new Map() };
+
+      // Merge configured rooms from zoneDistribution — show them even if no devices assigned yet
+      const configuredRooms = b.zoneDistribution || [];
+      for (const zone of configuredRooms) {
+        const rName = (zone.zoneName || '').trim();
+        if (rName && !house.roomMap.has(rName)) {
+          house.roomMap.set(rName, []); // empty room — no devices yet
+        }
+      }
+
       const rooms = Array.from(house.roomMap.entries())
         .sort((a, b) => a[0].localeCompare(b[0]))
         .map(([roomName, devs]) => ({

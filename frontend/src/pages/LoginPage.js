@@ -125,8 +125,7 @@ function LoginPage() {
           />
         </div>
 
-        <p className="login-demo-hint">Demo: alice.smith@example.com / password123 (Admin), bob.johnson@example.com / password123 (Manager)</p>
-        <p className="login-signup-link">Don&apos;t have an account? <Link to="/signup">Sign up</Link></p>
+                <p className="login-signup-link">Don&apos;t have an account? <Link to="/signup">Sign up</Link></p>
       </div>
     </div>
   );

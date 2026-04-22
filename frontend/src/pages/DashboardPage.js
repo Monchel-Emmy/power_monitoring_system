@@ -50,7 +50,10 @@ function DashboardPage() {
           <div className="overview-cards">
             <div className="card">
               <h3>System Health</h3>
-              <p className="health-status">{overview.systemHealthPercent}% {overview.systemHealth}</p>
+              <div className="health-status-compact">
+                <span className="health-percentage-display">{overview.systemHealthPercent}%</span>
+                <span className={`health-status-text ${overview.systemHealth.toLowerCase()}`}>{overview.systemHealth}</span>
+              </div>
             </div>
             <div className="card">
               <h3>Total Users</h3>

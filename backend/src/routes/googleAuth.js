@@ -13,7 +13,10 @@ router.get('/', passport.authenticate('google', {
 }));
 
 router.get('/callback', 
-  passport.authenticate('google', { failureRedirect: '/login?error=google-auth-failed' }),
+  passport.authenticate('google', { 
+    failureRedirect: '/login?error=google-auth-failed',
+    failureMessage: true 
+  }),
   async (req, res) => {
     try {
       // Generate JWT token

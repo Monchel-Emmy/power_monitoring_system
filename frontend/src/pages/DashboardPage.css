@@ -416,3 +416,39 @@
 .data-table tbody tr:hover {
   background-color: #eef;
 }
+
+/* Compact System Health Styles */
+.health-status-compact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 0.5rem;
+}
+
+.health-percentage-display {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.health-status-text {
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.health-status-text.excellent {
+  color: #10b981;
+}
+
+.health-status-text.good {
+  color: #3b82f6;
+}
+
+.health-status-text.warning {
+  color: #f59e0b;
+}
+
+.health-status-text.critical {
+  color: #ef4444;
+}
